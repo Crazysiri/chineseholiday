@@ -1,0 +1,10 @@
+{
+  "domain": "chineseholiday",
+  "name": "chineseholiday",
+  "documentation": "https://example.com/",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": [
+    "@seven"
+  ]
+}
