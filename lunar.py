@@ -27,6 +27,60 @@ lunar_isLeapMonth   = False
 class LunarDate(object):
     _startDate = datetime.date(1900, 1, 31)
 
+
+    @staticmethod
+    def fromSolarDate(year, month, day):
+        #通过公历年月日生成农历
+        #@return  LunarDate
+        solarDate = datetime.date(year, month, day)
+        offset = (solarDate - LunarDate._startDate).days
+        return LunarDate._fromOffset(offset)
+
+    @staticmethod
+    def _enumMonth(yearInfo):
+        months = [(i, 0) for i in range(1, 13)]
+        leapMonth = yearInfo % 16
+        if leapMonth == 0:
+            pass
+        elif leapMonth <= 12:
+            months.insert(leapMonth, (leapMonth, 1))
+        else:
+            raise ValueError("yearInfo %r mod 16 should in [0, 12]" % yearInfo)
+
+        for month, isLeapMonth in months:
+            if isLeapMonth:
+                days = (yearInfo >> 16) % 2 + 29
+            else:
+                days = (yearInfo >> (16 - month)) % 2 + 29
+            yield month, days, isLeapMonth
+
+    @classmethod
+    def _fromOffset(cls, offset):
+        def _calcMonthDay(yearInfo, offset):
+            for month, days, isLeapMonth in cls._enumMonth(yearInfo):
+                if offset < days:
+                    break
+                offset -= days
+            return (month, offset + 1, isLeapMonth)
+
+        offset = int(offset)
+
+        for idx, yearDay in enumerate(Info.yearDays()):
+            if offset < yearDay:
+                break
+            offset -= yearDay
+        year = 1900 + idx
+
+        yearInfo = Info.yearInfos[idx]
+        month, day, isLeapMonth = _calcMonthDay(yearInfo, offset)
+        return LunarDate(year, month, day, isLeapMonth)
+
+    @classmethod
+    def today(cls):
+        res = datetime.date.today()
+        return cls.fromSolarDate(res.year, res.month, res.day)
+
+
     def __init__(self, year, month, day, isLeapMonth=False):
         global lunar_year
         global lunar_month
@@ -48,13 +102,9 @@ class LunarDate(object):
 
     __repr__ = __str__
 
-    @staticmethod
-    def fromSolarDate(year, month, day):
-        solarDate = datetime.date(year, month, day)
-        offset = (solarDate - LunarDate._startDate).days
-        return LunarDate._fromOffset(offset)
-
     def toSolarDate(self):
+        #输出公历
+        #return datetime
         def _calcDays(yearInfo, month, day, isLeapMonth):
             isLeapMonth = int(isLeapMonth)
             res = 0
@@ -109,49 +159,6 @@ class LunarDate(object):
     def __le__(self, other):
         return self - other <= datetime.timedelta(0)
 
-    @classmethod
-    def today(cls):
-        res = datetime.date.today()
-        return cls.fromSolarDate(res.year, res.month, res.day)
-
-    @staticmethod
-    def _enumMonth(yearInfo):
-        months = [(i, 0) for i in range(1, 13)]
-        leapMonth = yearInfo % 16
-        if leapMonth == 0:
-            pass
-        elif leapMonth <= 12:
-            months.insert(leapMonth, (leapMonth, 1))
-        else:
-            raise ValueError("yearInfo %r mod 16 should in [0, 12]" % yearInfo)
-
-        for month, isLeapMonth in months:
-            if isLeapMonth:
-                days = (yearInfo >> 16) % 2 + 29
-            else:
-                days = (yearInfo >> (16 - month)) % 2 + 29
-            yield month, days, isLeapMonth
-
-    @classmethod
-    def _fromOffset(cls, offset):
-        def _calcMonthDay(yearInfo, offset):
-            for month, days, isLeapMonth in cls._enumMonth(yearInfo):
-                if offset < days:
-                    break
-                offset -= days
-            return (month, offset + 1, isLeapMonth)
-
-        offset = int(offset)
-
-        for idx, yearDay in enumerate(Info.yearDays()):
-            if offset < yearDay:
-                break
-            offset -= yearDay
-        year = 1900 + idx
-
-        yearInfo = Info.yearInfos[idx]
-        month, day, isLeapMonth = _calcMonthDay(yearInfo, offset)
-        return LunarDate(year, month, day, isLeapMonth)
 
 class ChineseWord():
     def weekday_str(tm):
@@ -186,7 +193,7 @@ class ChineseWord():
         return tg[(y - 4) % 10] + dz[(y - 4) % 12] + '[' + sx[(y - 4) % 12] + ']' + '年'
 
 class Festival():
-    #国历节日 *表示放假日
+    #国历节日
     def solar_Fstv(solar_month, solar_day):
         sFtv = [
         "0101#元旦节#",
@@ -267,7 +274,7 @@ class Festival():
         "1108#中国记者日#",
         "1109#全国消防安全宣传教育日#",
         "1110#世界青年节#",
-        "1111#国际科学与和平周(本日所属的一周)#",
+        "1111#光棍节# #国际科学与和平周(本日所属的一周)#",
         "1112#孙中山诞辰纪念日#",
         "1114#世界糖尿病日#",
         "1116#国际宽容日#",
@@ -300,13 +307,11 @@ class Festival():
 
 
     def lunar_Fstv(lunar_month, lunar_day):
-        #农历节日 *表示放假日
-        #每年单独来算
+        #农历节日
         lFtv = [
         "0101#春节#",
         "0115#元宵节#",
         "0202#春龙节",
-        #"0314#清明节#", #每年不一样，此为2012年，事实上为公历节日
         "0505#端午节#",
         "0707#七夕情人节#",
         "0715#中元节#",
@@ -314,7 +319,7 @@ class Festival():
         "0909#重阳节#",
         "1208#腊八节#",
         "1223#小年#",
-        "1229#除夕#"   #每年不一样，此为2011年
+        "1229#除夕#"
         ]
         lunar_month_str = str(lunar_month) if lunar_month > 9 else "0" + str(lunar_month)
         lunar_day_str = str(lunar_day) if lunar_day > 9 else "0" + str(lunar_day)
@@ -324,12 +329,11 @@ class Festival():
             if result is not None:
                 return result.group(2)
 
-    #国历节日 *表示放假日
     def weekday_Fstv(solar_month, solar_day, solar_weekday):
-        #某月的第几个星期几
+        #国历节日 某月的第几个星期几
         wFtv = [
         "0150#世界防治麻风病日#", #一月的最后一个星期日（月倒数第一个星期日）
-        "0520#国际母亲节#",
+        "0520#母亲节#",
         "0530#全国助残日#",
         "0630#父亲节#",
         "0730#被奴役国家周#",
@@ -494,44 +498,71 @@ class SolarDate():
         return 'LunarDate(%d, %d, %d, %d)' % (self.year, self.month, self.day, self.isLeapMonth)
 
 
-def getCalendar_today():
-    solar = SolarDate()
-    LunarDate.fromSolarDate(solar_year, solar_month, solar_day)
+class CalendarToday:
 
-    festival = ""
-    result_dict = {}
+    solar = None
+    lunar = None
+    def __init__(self):
+        solar = SolarDate()
+        lunar = LunarDate.fromSolarDate(solar_year,solar_month,solar_day)
 
-    if Festival.solar_Term(solar_month, solar_day):
-        festival = festival + " 今日节气：" + Festival.solar_Term(solar_month, solar_day)
-    if Festival.solar_Fstv(solar_month, solar_day):
-        festival = festival + " 公历节日：" + Festival.solar_Fstv(solar_month, solar_day)
-    if Festival.weekday_Fstv(solar_month, solar_day, solar_weekday):
-        if festival.find("公历节日") == -1:
-            festival = festival + " 公历节日：" + Festival.weekday_Fstv(solar_month, solar_day, solar_weekday)
-        else:
-            festival = festival + " " + Festival.weekday_Fstv(solar_month, solar_day, solar_weekday)
-    if Festival.lunar_Fstv(lunar_month, lunar_day):
-        festival = festival + " 农历节日：" + Festival.lunar_Fstv(lunar_month, lunar_day)
+    def _solar_festival(self):
+        #公历节日
+        s = Festival.solar_Fstv(solar_month, solar_day)
+        if s:
+            return s
+        return ''
 
-    twitter = \
-    "今天是" + str(solar_year) + "年" + str(solar_month) + "月" + str(solar_day) + "日" + " " \
-    + ChineseWord.weekday_str(solar_weekday) + " 农历" + ChineseWord.year_lunar(lunar_year) \
-    + ChineseWord.month_lunar(lunar_isLeapMonth,lunar_month) \
-    + ChineseWord.day_lunar(lunar_day) + festival
-    result_dict['lunar'] =  ChineseWord.month_lunar(lunar_isLeapMonth,lunar_month) + ChineseWord.day_lunar(lunar_day)
-    result_dict['lunar_month'] = lunar_month
-    result_dict['lunar_day'] = lunar_day
-    if festival != "":
-        result_dict['festival'] = festival
-    return result_dict
+    def _weekday_festival(self):
+        #某月第几个周几的节日
+        s =  Festival.weekday_Fstv(solar_month, solar_day, solar_weekday)
+        if s:
+            return s
+        return ''
 
+    def _lunar_festival(self):
+        #农历节日
+        s =  Festival.lunar_Fstv(lunar_month, lunar_day)
+        if s:
+            return s
+        return ''
+
+
+    def festival_description(self):
+        return self._lunar_festival() + self._solar_festival() + self._weekday_festival()
+
+    def solar_Term(self):
+        #今日节气
+        return Festival.solar_Term(solar_month,solar_day)
+
+    def solar_date_description(self):
+        #2000年01月01日
+        return str(solar_year) + "年" + str(solar_month) + "月" + str(solar_day) + "日"
+
+    def week_date_description(self):
+        #星期几
+        return ChineseWord.weekday_str(solar_weekday)
+
+    def lunar_date_description(self):
+        #正月初一
+        return ChineseWord.month_lunar(lunar_isLeapMonth,lunar_month) + ChineseWord.day_lunar(lunar_day)
+
+    def solar(self):
+        return solar_year,solar_month,solar_day
+
+    def lunar(self):
+        return lunar_year,lunar_month,lunar_day
 
 
 def main():
-    #"main function"
-    #print(base64.b64decode(b'Q29weXJpZ2h0IChjKSAyMDEyIERvdWN1YmUgSW5jLiBBbGwgcmlnaHRzIHJlc2VydmVkLg==').decode())
-    #getCalendar_all_day()
-    getCalendar_today()
+    cal = CalendarToday()
+    print(cal.solar_Term())
+    print(cal.festival_description())
+    print(cal.solar_date_description())
+    print(cal.week_date_description())
+    print(cal.lunar_date_description())
+    print(cal.solar())
+    print(cal.lunar())
 
 
 if __name__ == '__main__':
