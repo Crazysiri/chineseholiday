@@ -24,6 +24,15 @@ lunar_day           = 0
 lunar_isLeapMonth   = False
 
 
+def festival_handle(list,month,day):
+    month_str = str(month) if month > 9 else "0" + str(month)
+    day_str = str(day) if day > 9 else "0" + str(day)
+    pattern = "(" + month_str + day_str + ")([\w+?\#?\s?]*)"
+    for fstv_item in list:
+        result = re.search(pattern, fstv_item)
+        if result is not None:
+            return result.group(2)
+
 class LunarDate(object):
     _startDate = datetime.date(1900, 1, 31)
 
@@ -321,14 +330,9 @@ class Festival():
         "1223#小年#",
         "1229#除夕#"
         ]
-        lunar_month_str = str(lunar_month) if lunar_month > 9 else "0" + str(lunar_month)
-        lunar_day_str = str(lunar_day) if lunar_day > 9 else "0" + str(lunar_day)
-        pattern = "(" + lunar_month_str + lunar_day_str + ")([\w+?\#?\s?]*)"
-        for lunar_fstv_item in lFtv:
-            result = re.search(pattern, lunar_fstv_item)
-            if result is not None:
-                return result.group(2)
+        return festival_handle(lFtv,lunar_month,lunar_day)
 
+        
     def weekday_Fstv(solar_month, solar_day, solar_weekday):
         #国历节日 某月的第几个星期几
         wFtv = [
@@ -539,7 +543,7 @@ class CalendarToday:
         #2000年01月01日
         return str(solar_year) + "年" + str(solar_month) + "月" + str(solar_day) + "日"
 
-    def week_date_description(self):
+    def week_description(self):
         #星期几
         return ChineseWord.weekday_str(solar_weekday)
 
@@ -559,7 +563,7 @@ def main():
     print(cal.solar_Term())
     print(cal.festival_description())
     print(cal.solar_date_description())
-    print(cal.week_date_description())
+    print(cal.week_description())
     print(cal.lunar_date_description())
     print(cal.solar())
     print(cal.lunar())
