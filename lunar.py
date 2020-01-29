@@ -81,6 +81,9 @@ class LunarDate(object):
         year = 1900 + idx
 
         yearInfo = Info.yearInfos[idx]
+        print('yearInfo')
+        print(year)
+        print(idx)
         month, day, isLeapMonth = _calcMonthDay(yearInfo, offset)
         return LunarDate(year, month, day, isLeapMonth)
 
@@ -134,9 +137,9 @@ class LunarDate(object):
             raise ValueError('year out of range [1900, 2050)')
         yearIdx = self.year - 1900
         for i in range(yearIdx):
-            offset += yearDays[i]
+            offset += Info.yearDays()[i]
 
-        offset += _calcDays(yearInfos[yearIdx], self.month, self.day, self.isLeapMonth)
+        offset += _calcDays(Info.yearInfos[yearIdx], self.month, self.day, self.isLeapMonth)
         return self._startDate + datetime.timedelta(days=offset)
 
     def __sub__(self, other):
@@ -332,7 +335,7 @@ class Festival():
         ]
         return festival_handle(lFtv,lunar_month,lunar_day)
 
-        
+
     def weekday_Fstv(solar_month, solar_day, solar_weekday):
         #国历节日 某月的第几个星期几
         wFtv = [
@@ -557,6 +560,11 @@ class CalendarToday:
     def lunar(self):
         return lunar_year,lunar_month,lunar_day
 
+    @classmethod
+    def lunar_to_solar(cls,year,month,day):
+        l = LunarDate(year,month,day,False)
+        return l.toSolarDate()
+
 
 def main():
     cal = CalendarToday()
@@ -567,7 +575,19 @@ def main():
     print(cal.lunar_date_description())
     print(cal.solar())
     print(cal.lunar())
+    print(CalendarToday.lunar_to_solar(2020,1,5))
 
 
 if __name__ == '__main__':
     main()
+
+
+"""
+    idx = 2020 - 1900
+    yearInfo = Info.yearInfos[idx]
+    isLeapMonth = False
+    for _month, _days, _isLeapMonth in LunarDate._enumMonth(yearInfo):
+        if _isLeapMonth:
+            isLeapMonth = _isLeapMonth
+            break
+"""
