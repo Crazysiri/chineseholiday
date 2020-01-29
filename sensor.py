@@ -7,21 +7,28 @@
 from homeassistant.helpers.entity import Entity
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
-import datetime
-from datetime import timedelta
-import time
 import logging
 from homeassistant.util import Throttle
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (
      CONF_NAME)
 from homeassistant.helpers.entity import generate_entity_id
-import json
-import re
+import datetime
+from . import holiday
+from . import lunar
+
+"""
+    cal = lunar.CalendarToday()
+    print(cal.solar_Term())
+    print(cal.festival_description())
+    print(cal.solar_date_description())
+    print(cal.week_description())
+    print(cal.lunar_date_description())
+    print(cal.solar())
+    print(cal.lunar())
+"""
 
 _Log=logging.getLogger(__name__)
-
-
 
 DEFAULT_NAME = 'chinese_holiday'
 CONF_UPDATE_INTERVAL = 'update_interval'
@@ -31,10 +38,10 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_UPDATE_INTERVAL, default=timedelta(minutes=360)): (vol.All(cv.time_period, cv.positive_timedelta)),
 })
 
-HOLIDAY = {}
 
 #公历 纪念日 每年都有的
 SOLAR_ANNIVERSARY = [
+    "0627#石雨生日#"
     "0731#仇友博生日#"
 ]
 #农历 纪念日 每年都有的
@@ -56,56 +63,21 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     add_devices(sensors, True)
 
 class ChineseHolidaySensor(Entity):
+
+    _holiday = None
+    _lunar = None
+
     def __init__(self, hass, name, interval):
         """Initialize the sensor."""
         self.client_name = name
         self._state = None
         self._hass = hass
+        self._holiday = holiday.Holiday()
+        self._lunar = lunar.CalendarToday()
         self.attributes = {}
         self.entity_id = generate_entity_id(
             'sensor.{}', self.client_name, hass=self._hass)
         self.update = Throttle(interval)(self._update)
-
-
-    def nearest_holiday(self):
-        '''查找离今天最近的法定节假日，并显示天数'''
-        now_day = datetime.date.today()
-        count_dict = {}
-        for key in HOLIDAY.keys():
-            if (key - now_day).days > 0:
-                count_dict[key] = (key - now_day).days
-        nearest_holiday_dict = {}
-        if count_dict == {}:
-            nearest_holiday_dict['name'] ='本年度已无法定节假日'
-            nearest_holiday_dict['date'] = '本年度已无法定节假日'
-            nearest_holiday_dict['day'] = '-1'
-
-        else:
-            nearest_holiday_dict['name'] = HOLIDAY[min(count_dict)]
-            nearest_holiday_dict['date'] = min(count_dict).isoformat()
-            nearest_holiday_dict['day'] = str((min(count_dict)-now_day).days)+'天'
-
-        return nearest_holiday_dict
-
-    def nearest_anniversary(self):
-        '''查找离今天最近的纪念日，并显示天数'''
-        now_day = datetime.date.today()
-        count_dict = {}
-        for key in ANNIVERSARY.keys():
-            if (key - now_day).days > 0:
-                count_dict[key] = (key - now_day).days
-        nearest_anniversary_dict = {}
-        if count_dict == {}:
-            nearest_anniversary_dict['name'] = '未定义或无纪念日'
-            nearest_anniversary_dict['date'] = '未定义或无纪念日'
-            nearest_anniversary_dict['day'] = '-1'
-        else:
-            nearest_anniversary_dict['name'] = ANNIVERSARY[min(count_dict)]
-            nearest_anniversary_dict['date'] = min(count_dict).isoformat()
-            nearest_anniversary_dict['day'] = str((min(count_dict)-now_day).days)+'天'
-
-        return nearest_anniversary_dict
-
 
     @property
     def name(self):
@@ -122,51 +94,80 @@ class ChineseHolidaySensor(Entity):
         """Icon to use in the frontend, if any."""
         return 'mdi:calendar-today'
 
-
-
     @property
     def device_state_attributes(self):
         """Return the state attributes."""
-
         return self.attributes
 
+    def custom_anniversary(self):
+        lunar_month = self._lunar.lunar()[1]
+        lunar_day = self._lunar.lunar()[2]
+        solar_month = self._lunar.solar()[1]
+        solar_day = self._lunar.solar()[2]
+        lunar_anni = lunar.festival_handle(LUNAR_ANNIVERSARY,lunar_month,lunar_day)
+        solar_anni = lunar.festival_handle(SOLAR_ANNIVERSARY,solar_month,solar_day)
+        return lunar_anni + solar_anni
+
+
+    def calculate_holiday(self):
+        if not CALCULATEAGE:
+            return
+        now_day = datetime.datetime.now()
+        count_dict = {}
+        for key, value in CALCULATEAGE.items():
+            if (now_day - key).total_seconds() > 0:
+                total_seconds = int((now_day - key).total_seconds())
+                year, remainder = divmod(total_seconds,60*60*24*365)
+                day, remainder = divmod(remainder,60*60*24)
+                hour, remainder = divmod(remainder,60*60)
+                minute, second = divmod(remainder,60)
+                self.attributes['离'+value+'过去'] = '{}年 {} 天 {} 小时 {} 分钟 {} 秒'.format(year,day,hour,minute,second)
+            if (now_day - key).total_seconds() < 0:
+                total_seconds = int((key - now_day ).total_seconds())
+                year, remainder = divmod(total_seconds,60*60*24*365)
+                day, remainder = divmod(remainder,60*60*24)
+                hour, remainder = divmod(remainder,60*60)
+                minute, second = divmod(remainder,60)
+                self.attributes['离'+value+'还差']  = '{}年 {} 天 {} 小时 {} 分钟 {} 秒'.format(year,day,hour,minute,second)
+
+
+    def nearest_holiday(self):
+        '''查找离今天最近的法定节假日，并显示天数'''
+        now_day = datetime.date.today()
+        count_dict = {}
+        results = self._holiday.getHoliday()
+        for key in results.keys():
+            if (key - now_day).days > 0:
+                count_dict[key] = (key - now_day).days
+        nearest_holiday_dict = {}
+        if count_dict:
+            nearest_holiday_dict['name'] = results[min(count_dict)]
+            nearest_holiday_dict['date'] = min(count_dict).isoformat()
+            nearest_holiday_dict['day'] = str((min(count_dict)-now_day).days)+'天'
+
+        return nearest_holiday_dict
 
     def _update(self):
-        self.getonline40dholiday('101240101',datetime.date.today().strftime('%Y%m%d'))
-        self._state = self.is_holiday_today()
-        self.attributes['今天日期'] = datetime.date.today().strftime('%Y{y}%m{m}%d{d}').format(y='年', m='月', d='日')
-        self.attributes['农历'] = lunar.getCalendar_today()['lunar']
-        if 'festival' in lunar.getCalendar_today().keys():
-            self.attributes['节日'] = lunar.getCalendar_today()['festival']
+        self._state = self._holiday.is_holiday_today()
+        self.attributes['今天'] = self._lunar.solar_date_description()
+        # self.attributes['今天'] = datetime.date.today().strftime('%Y{y}%m{m}%d{d}').format(y='年', m='月', d='日')
+        self.attributes['星期'] = self._lunar.week_description()
+        self.attributes['农历'] = self._lunar.lunar_date_description()
+        term = self._lunar.solar_Term()
+        if term:
+            self.attributes['节气'] = term
+        festival = self._lunar.festival_description()
+        if festival:
+            self.attributes['节日'] = festival
 
-        month = lunar.getCalendar_today()['lunar_month']
-        day = lunar.getCalendar_today()['lunar_day']
-        anni = ''
-        anni = self.lunar_Fstv(month,day)
-        if anni:
-            self.attributes['农历纪念日'] = anni
+        custom = self.custom_anniversary()
+        if custom:
+            self.attributes['纪念日'] = custom
 
-        self.attributes['离今天最近的法定节日'] = self.nearest_holiday()['name']
-        self.attributes['法定节日日期'] = self.nearest_holiday()['date']
-        self.attributes['还有'] = self.nearest_holiday()['day']
-        self.attributes['最近的纪念日'] = self.nearest_anniversary()['name']
-        self.attributes['纪念日日期'] = self.nearest_anniversary()['date']
-        self.attributes['相隔'] = self.nearest_anniversary()['day']
-        if CALCULATEAGE:
-            now_day = datetime.datetime.now()
-            count_dict = {}
-            for key, value in CALCULATEAGE.items():
-                if (now_day - key).total_seconds() > 0:
-                    total_seconds = int((now_day - key).total_seconds())
-                    year, remainder = divmod(total_seconds,60*60*24*365)
-                    day, remainder = divmod(remainder,60*60*24)
-                    hour, remainder = divmod(remainder,60*60)
-                    minute, second = divmod(remainder,60)
-                    self.attributes['离'+value+'过去'] = '{}年 {} 天 {} 小时 {} 分钟 {} 秒'.format(year,day,hour,minute,second)
-                if (now_day - key).total_seconds() < 0:
-                    total_seconds = int((key - now_day ).total_seconds())
-                    year, remainder = divmod(total_seconds,60*60*24*365)
-                    day, remainder = divmod(remainder,60*60*24)
-                    hour, remainder = divmod(remainder,60*60)
-                    minute, second = divmod(remainder,60)
-                    self.attributes['离'+value+'还差']  = '{}年 {} 天 {} 小时 {} 分钟 {} 秒'.format(year,day,hour,minute,second)
+        nearest = self.nearest_holiday()
+        if nearest_holiday:
+            self.attributes['离今天最近的法定节日'] = nearest['name']
+            self.attributes['法定节日日期'] = nearest['date']
+            self.attributes['还有'] = nearest['day']
+
+        self.calculate_holiday()
