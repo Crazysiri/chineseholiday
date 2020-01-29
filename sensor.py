@@ -38,6 +38,8 @@ CONF_LUNAR_ANNIVERSARY = 'lunar_anniversary'
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+    vol.Optional(CONF_SOLAR_ANNIVERSARY, default=[]): cv.ensure_list_csv,
+    vol.Optional(CONF_LUNAR_ANNIVERSARY, default=[]): cv.ensure_list_csv,
     vol.Optional(CONF_UPDATE_INTERVAL, default=timedelta(minutes=360)): (vol.All(cv.time_period, cv.positive_timedelta)),
 })
 
@@ -62,13 +64,8 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
     global SOLAR_ANNIVERSARY
     global LUNAR_ANNIVERSARY
-    solar_anniversary = config.get(CONF_SOLAR_ANNIVERSARY)
-    lunar_anniversary = config.get(CONF_LUNAR_ANNIVERSARY)
-
-    if solar_anniversary:
-        SOLAR_ANNIVERSARY = solar_anniversary
-    if lunar_anniversary:
-        LUNAR_ANNIVERSARY = lunar_anniversary
+    SOLAR_ANNIVERSARY = config[CONF_SOLAR_ANNIVERSARY]
+    LUNAR_ANNIVERSARY = config[CONF_LUNAR_ANNIVERSARY]
 
     sensors = [ChineseHolidaySensor(hass, name, interval)]
     add_devices(sensors, True)
@@ -228,12 +225,12 @@ class ChineseHolidaySensor(Entity):
             self.attributes['纪念日'] = custom
 
         key,days,annis = self.calculate_anniversary()
-        str = ''
+        s = ''
         if key and days and annis:
             for anni in annis:
-                str += anni['anniversary']
+                s += anni['anniversary']
 
-            self.attributes['离最近的纪念日'] = str + '还有' + days + '天'
+            self.attributes['离最近的纪念日'] = s + '还有' + str(days) + '天'
 
         nearest = self.nearest_holiday()
         if nearest:
