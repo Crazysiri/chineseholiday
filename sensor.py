@@ -42,12 +42,9 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 #公历 纪念日 每年都有的
 SOLAR_ANNIVERSARY = [
-    "0627#石雨生日#"
-    "0731#仇友博生日#"
 ]
 #农历 纪念日 每年都有的
 LUNAR_ANNIVERSARY = [
-    "0618#仇友博农历生日#",
 ]
 
 CALCULATEAGE= {
@@ -99,6 +96,53 @@ class ChineseHolidaySensor(Entity):
     def device_state_attributes(self):
         """Return the state attributes."""
         return self.attributes
+
+    #计算纪念日（每年都有的）
+    def calculate_anniversary(self):
+        """
+            {
+                '20200101':[{'anniversary':'0101#xx生日#','solar':True}]
+            }
+        """
+        anniversaries = {}
+
+        for l in LUNAR_ANNIVERSARY:
+            date_str = l.split('#')[0]
+            month = int(date_str[:2])
+            day = int(date_str[2:])
+            solar_date = lunar.CalendarToday.lunar_to_solar(self._lunar.solar()[0],month,day)#下标和位置
+            date_str = solar_date.strftime('%Y%m%d')
+            try:
+                list = anniversaries[date_str]
+            except Exception as e:
+                anniversaries[date_str] = []
+                list = anniversaries[date_str]
+            list.append({'anniversary':l,'solar':False})
+
+        for s in SOLAR_ANNIVERSARY:
+            date_str = s.split('#')[0]
+            date_str = str(self._lunar.solar()[0])+date_str #20200101
+            try:
+                list = anniversaries[date_str]
+            except Exception as e:
+                anniversaries[date_str] = []
+                list = anniversaries[date_str]
+            list.append({'anniversary':s,'solar':True})
+
+
+    #根据key 排序 因为key就是日期字符串
+        list=sorted(anniversaries.items(),key=lambda x:x[0])
+        #找到第一个大于今天的纪念日
+        for item in list:
+            key = item[0]
+            annis = item[1] #纪念日数组
+            now_str = datetime.datetime.now().strftime('%Y-%m-%d')
+            today = datetime.datetime.strptime(now_str, "%Y-%m-%d")
+            last_update = datetime.datetime.strptime(key,'%Y%m%d')
+            days = (last_update - today).days
+            if days > 0:
+                return key,days,annis
+        return None,None,None
 
     def custom_anniversary(self):
         lunar_month = self._lunar.lunar()[1]
@@ -169,6 +213,14 @@ class ChineseHolidaySensor(Entity):
         custom = self.custom_anniversary()
         if custom:
             self.attributes['纪念日'] = custom
+
+        key,days,annis = self.calculate_anniversary()
+        str = ''
+        if key and days and annis:
+            for anni in annis:
+                str += anni['anniversary']
+
+            self.attributes['离最近的纪念日'] = str + '还有' + days + '天'
 
         nearest = self.nearest_holiday()
         if nearest:
