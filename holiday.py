@@ -5,7 +5,7 @@
 import requests
 import datetime
 import time
-import lunar
+from . import lunar
 import json
 
 FESTIVAL_TYPE= {
@@ -32,7 +32,7 @@ class HolidayDatabase:
 
     def connect(self):
 
-    	self.conn = sqlite3.connect('data.db')
+    	self.conn = sqlite3.connect('data.db',check_same_thread=False)
 
     	self.cursor = self.conn.cursor()
 

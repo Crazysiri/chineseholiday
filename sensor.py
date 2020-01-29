@@ -14,6 +14,7 @@ from homeassistant.const import (
      CONF_NAME)
 from homeassistant.helpers.entity import generate_entity_id
 import datetime
+from datetime import timedelta
 from . import holiday
 from . import lunar
 
@@ -106,7 +107,12 @@ class ChineseHolidaySensor(Entity):
         solar_day = self._lunar.solar()[2]
         lunar_anni = lunar.festival_handle(LUNAR_ANNIVERSARY,lunar_month,lunar_day)
         solar_anni = lunar.festival_handle(SOLAR_ANNIVERSARY,solar_month,solar_day)
-        return lunar_anni + solar_anni
+        anni = ''
+        if lunar_anni:
+            anni += lunar_anni
+        if solar_anni:
+            anni += solar_anni
+        return anni
 
 
     def calculate_holiday(self):
@@ -165,7 +171,7 @@ class ChineseHolidaySensor(Entity):
             self.attributes['纪念日'] = custom
 
         nearest = self.nearest_holiday()
-        if nearest_holiday:
+        if nearest:
             self.attributes['离今天最近的法定节日'] = nearest['name']
             self.attributes['法定节日日期'] = nearest['date']
             self.attributes['还有'] = nearest['day']
