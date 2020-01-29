@@ -33,6 +33,8 @@ _Log=logging.getLogger(__name__)
 
 DEFAULT_NAME = 'chinese_holiday'
 CONF_UPDATE_INTERVAL = 'update_interval'
+CONF_SOLAR_ANNIVERSARY = 'solar_anniversary'
+CONF_LUNAR_ANNIVERSARY = 'lunar_anniversary'
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
@@ -54,8 +56,19 @@ CALCULATEAGE= {
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the movie sensor."""
+
     name = config[CONF_NAME]
     interval = config.get(CONF_UPDATE_INTERVAL)
+
+    global SOLAR_ANNIVERSARY
+    global LUNAR_ANNIVERSARY
+    solar_anniversary = config.get(CONF_SOLAR_ANNIVERSARY)
+    lunar_anniversary = config.get(CONF_LUNAR_ANNIVERSARY)
+
+    if solar_anniversary:
+        SOLAR_ANNIVERSARY = solar_anniversary
+    if lunar_anniversary:
+        LUNAR_ANNIVERSARY = lunar_anniversary
 
     sensors = [ChineseHolidaySensor(hass, name, interval)]
     add_devices(sensors, True)
