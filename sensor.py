@@ -130,7 +130,7 @@ class ChineseHolidaySensor(Entity):
             annis = []
             for i in range(1,len(list)):
                 s = list[i]
-                s = s.replace(' ','')
+                s = s.strip()
                 if s:
                     annis.append(s)
             return ','.join(annis)

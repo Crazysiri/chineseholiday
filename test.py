@@ -9,12 +9,12 @@ import lunar
 
 
 SOLAR_ANNIVERSARY = [
-    "0620#aa生日# #bb纪念日#",
-    "0721#cc生日#"
+    "0620#aa 生日# #bb 纪念日#",
+    "0721#cc 生日#"
 ]
 #农历 纪念日 每年都有的
 LUNAR_ANNIVERSARY = [
-    "0602#cc农历生日#",
+    "0602#cc 农历生日#",
 ]
 
 CALCULATE_AGE = [
@@ -72,7 +72,7 @@ def calculate_anniversary():
         annis = []
         for i in range(1,len(list)):
             s = list[i]
-            s = s.replace(' ','')
+            s = s.strip()
             if s:
                 annis.append(s)
         return ','.join(annis)
