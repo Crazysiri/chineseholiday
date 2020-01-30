@@ -67,10 +67,6 @@ LUNAR_ANNIVERSARY = [
 
 #纪念日 指定时间的（出生日到今天的计时或今天到某一天还需要的时间例如金婚）
 CALCULATE_AGE = [
-    {
-        'date':'2010-10-10 08:23:12',
-        'name':'xxx'
-    }
 ]
     # '2010-10-10 08:23:12': 'xx',
 
@@ -82,9 +78,11 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
     global SOLAR_ANNIVERSARY
     global LUNAR_ANNIVERSARY
+    global CALCULATE_AGE
     SOLAR_ANNIVERSARY = config[CONF_SOLAR_ANNIVERSARY]
     LUNAR_ANNIVERSARY = config[CONF_LUNAR_ANNIVERSARY]
-
+    CALCULATE_AGE = config[CONF_CALCULATE_AGE]
+    
     sensors = [ChineseHolidaySensor(hass, name, interval)]
     add_devices(sensors, True)
 

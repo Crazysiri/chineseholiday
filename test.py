@@ -16,6 +16,31 @@ LUNAR_ANNIVERSARY = [
 
 _lunar = lunar.CalendarToday()
 
+def calculate_age():
+    if not CALCULATE_AGE:
+        return
+    now_day = datetime.datetime.now()
+    count_dict = {}
+    for item in CALCULATE_AGE:
+        date = item[CONF_CALCULATE_AGE_DATE]
+        name = item[CONF_CALCULATE_AGE_NAME]
+        key = datetime.datetime.strptime(date,'%Y-%m-%d %H:%M:%S')
+        if (now_day - key).total_seconds() > 0:
+            total_seconds = int((now_day - key).total_seconds())
+            year, remainder = divmod(total_seconds,60*60*24*365)
+            day, remainder = divmod(remainder,60*60*24)
+            hour, remainder = divmod(remainder,60*60)
+            minute, second = divmod(remainder,60)
+            self.attributes['离'+name+'过去'] = '{}年 {} 天 {} 小时 {} 分钟 {} 秒'.format(year,day,hour,minute,second)
+        if (now_day - key).total_seconds() < 0:
+            total_seconds = int((key - now_day ).total_seconds())
+            year, remainder = divmod(total_seconds,60*60*24*365)
+            day, remainder = divmod(remainder,60*60*24)
+            hour, remainder = divmod(remainder,60*60)
+            minute, second = divmod(remainder,60)
+            self.attributes['离'+name+'还差']  = '{}年 {} 天 {} 小时 {} 分钟 {} 秒'.format(year,day,hour,minute,second)
+
+
 def custom_anniversary():
     lunar_month = _lunar.lunar()[1]
     lunar_day = _lunar.lunar()[2]
