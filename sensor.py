@@ -36,6 +36,8 @@ CONF_UPDATE_INTERVAL = 'update_interval'
 CONF_SOLAR_ANNIVERSARY = 'solar_anniversary'
 CONF_LUNAR_ANNIVERSARY = 'lunar_anniversary'
 CONF_CALCULATE_AGE = 'calculate_age'
+CONF_CALCULATE_AGE_DATE = 'date'
+CONF_CALCULATE_AGE_NAME = 'name'
 
 
 # CALCULATE_AGE_DEFAULTS_SCHEMA = vol.Any(None, vol.Schema({
@@ -46,7 +48,12 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_SOLAR_ANNIVERSARY, default=[]): cv.ensure_list_csv,
     vol.Optional(CONF_LUNAR_ANNIVERSARY, default=[]): cv.ensure_list_csv,
-    vol.Optional(CONF_CALCULATE_AGE,default={}): dict,
+    vol.Optional(CONF_CALCULATE_AGE,default=[]): [
+        {
+            vol.Optional(CONF_CALCULATE_AGE_DATE): cv.string,
+            vol.Optional(CONF_CALCULATE_AGE_NAME): cv.string,
+        }
+    ],
     vol.Optional(CONF_UPDATE_INTERVAL, default=timedelta(minutes=360)): (vol.All(cv.time_period, cv.positive_timedelta)),
 })
 
@@ -59,9 +66,13 @@ LUNAR_ANNIVERSARY = [
 ]
 
 #纪念日 指定时间的（出生日到今天的计时或今天到某一天还需要的时间例如金婚）
-CALCULATE_AGE = {
+CALCULATE_AGE = [
+    {
+        'date':'2010-10-10 08:23:12',
+        'name':'xxx'
+    }
+]
     # '2010-10-10 08:23:12': 'xx',
-}
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the movie sensor."""
@@ -182,22 +193,24 @@ class ChineseHolidaySensor(Entity):
             return
         now_day = datetime.datetime.now()
         count_dict = {}
-        for key, value in CALCULATE_AGE.items():
-            key = datetime.datetime.strptime(key,'%Y-%m-%d %H:%M:%S')
+        for item in CALCULATE_AGE:
+            date = item[CONF_CALCULATE_AGE_DATE]
+            name = item[CONF_CALCULATE_AGE_NAME]
+            key = datetime.datetime.strptime(date,'%Y-%m-%d %H:%M:%S')
             if (now_day - key).total_seconds() > 0:
                 total_seconds = int((now_day - key).total_seconds())
                 year, remainder = divmod(total_seconds,60*60*24*365)
                 day, remainder = divmod(remainder,60*60*24)
                 hour, remainder = divmod(remainder,60*60)
                 minute, second = divmod(remainder,60)
-                self.attributes['离'+value+'过去'] = '{}年 {} 天 {} 小时 {} 分钟 {} 秒'.format(year,day,hour,minute,second)
+                self.attributes['离'+name+'过去'] = '{}年 {} 天 {} 小时 {} 分钟 {} 秒'.format(year,day,hour,minute,second)
             if (now_day - key).total_seconds() < 0:
                 total_seconds = int((key - now_day ).total_seconds())
                 year, remainder = divmod(total_seconds,60*60*24*365)
                 day, remainder = divmod(remainder,60*60*24)
                 hour, remainder = divmod(remainder,60*60)
                 minute, second = divmod(remainder,60)
-                self.attributes['离'+value+'还差']  = '{}年 {} 天 {} 小时 {} 分钟 {} 秒'.format(year,day,hour,minute,second)
+                self.attributes['离'+name+'还差']  = '{}年 {} 天 {} 小时 {} 分钟 {} 秒'.format(year,day,hour,minute,second)
 
 
     def nearest_holiday(self):
