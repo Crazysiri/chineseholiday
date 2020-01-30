@@ -9,9 +9,12 @@ import lunar
 
 
 SOLAR_ANNIVERSARY = [
+    "0620#aa生日# #bb纪念日#",
+    "0721#cc生日#"
 ]
 #农历 纪念日 每年都有的
 LUNAR_ANNIVERSARY = [
+    "0602#cc农历生日#",
 ]
 
 CALCULATE_AGE = [
@@ -62,7 +65,17 @@ def custom_anniversary():
         anni += solar_anni
     return anni
 
+#计算纪念日（每年都有的）
 def calculate_anniversary():
+    def anniversary_handle(input_str):
+        list = input_str.split('#')
+        annis = []
+        for i in range(1,len(list)):
+            s = list[i]
+            s = s.replace(' ','')
+            if s:
+                annis.append(s)
+        return ','.join(annis)
     """
         {
             '20200101':[{'anniversary':'0101#xx生日#','solar':True}]
@@ -81,19 +94,17 @@ def calculate_anniversary():
         except Exception as e:
             anniversaries[date_str] = []
             list = anniversaries[date_str]
-        list.append({'anniversary':l,'solar':False})
+        list.append({'anniversary':anniversary_handle(l),'solar':False})
 
     for s in SOLAR_ANNIVERSARY:
-        comps =  s.split('#')
-        print(comps)
-        date_str = comps[0]
+        date_str = s.split('#')[0]
         date_str = str(_lunar.solar()[0])+date_str #20200101
         try:
             list = anniversaries[date_str]
         except Exception as e:
             anniversaries[date_str] = []
             list = anniversaries[date_str]
-        list.append({'anniversary':s,'solar':True})
+        list.append({'anniversary':anniversary_handle(s),'solar':True})
 
 
 #根据key 排序 因为key就是日期字符串
@@ -108,10 +119,10 @@ def calculate_anniversary():
         days = (last_update - today).days
         if days > 0:
             return key,days,annis
-    return None
+    return None,None,None
 
 def main():
-    print(custom_anniversary())
+    print(calculate_anniversary())
 
 
 if __name__ == '__main__':

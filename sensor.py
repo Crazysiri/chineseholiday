@@ -125,6 +125,15 @@ class ChineseHolidaySensor(Entity):
 
     #计算纪念日（每年都有的）
     def calculate_anniversary(self):
+        def anniversary_handle(input_str):
+            list = input_str.split('#')
+            annis = []
+            for i in range(1,len(list)):
+                s = list[i]
+                s = s.replace(' ','')
+                if s:
+                    annis.append(s)
+            return ','.join(annis)
         """
             {
                 '20200101':[{'anniversary':'0101#xx生日#','solar':True}]
@@ -143,7 +152,7 @@ class ChineseHolidaySensor(Entity):
             except Exception as e:
                 anniversaries[date_str] = []
                 list = anniversaries[date_str]
-            list.append({'anniversary':l,'solar':False})
+            list.append({'anniversary':anniversary_handle(l),'solar':False})
 
         for s in SOLAR_ANNIVERSARY:
             date_str = s.split('#')[0]
@@ -153,7 +162,7 @@ class ChineseHolidaySensor(Entity):
             except Exception as e:
                 anniversaries[date_str] = []
                 list = anniversaries[date_str]
-            list.append({'anniversary':s,'solar':True})
+            list.append({'anniversary':anniversary_handle(s),'solar':True})
 
 
     #根据key 排序 因为key就是日期字符串
@@ -229,6 +238,7 @@ class ChineseHolidaySensor(Entity):
 
     def _update(self):
 
+        self.attributes = {} #重置attributes
         self._lunar = lunar.CalendarToday()#重新赋值
 
         self._state = self._holiday.is_holiday_today()

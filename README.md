@@ -50,7 +50,7 @@ sensor:
   - platform: chineseholiday
     name: holiday
     solar_anniversary:
-      - "0121#aa生日#"
+      - "0121#aa生日# #cc生日#"
       - "0220#bb生日#"
     lunar_anniversary:
       - "0321#aa农历生日#"
