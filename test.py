@@ -8,7 +8,6 @@ import lunar
 
 
 
-#公历 纪念日 每年都有的
 SOLAR_ANNIVERSARY = [
 ]
 #农历 纪念日 每年都有的
@@ -16,6 +15,20 @@ LUNAR_ANNIVERSARY = [
 ]
 
 _lunar = lunar.CalendarToday()
+
+def custom_anniversary():
+    lunar_month = _lunar.lunar()[1]
+    lunar_day = _lunar.lunar()[2]
+    solar_month = _lunar.solar()[1]
+    solar_day = _lunar.solar()[2]
+    lunar_anni = lunar.festival_handle(LUNAR_ANNIVERSARY,lunar_month,lunar_day)
+    solar_anni = lunar.festival_handle(SOLAR_ANNIVERSARY,solar_month,solar_day)
+    anni = ''
+    if lunar_anni:
+        anni += lunar_anni
+    if solar_anni:
+        anni += solar_anni
+    return anni
 
 def calculate_anniversary():
     """
@@ -39,7 +52,9 @@ def calculate_anniversary():
         list.append({'anniversary':l,'solar':False})
 
     for s in SOLAR_ANNIVERSARY:
-        date_str = s.split('#')[0]
+        comps =  s.split('#')
+        print(comps)
+        date_str = comps[0]
         date_str = str(_lunar.solar()[0])+date_str #20200101
         try:
             list = anniversaries[date_str]
@@ -64,7 +79,7 @@ def calculate_anniversary():
     return None
 
 def main():
-    print(calculate_anniversary())
+    print(custom_anniversary())
 
 
 if __name__ == '__main__':

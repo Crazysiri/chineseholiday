@@ -35,11 +35,18 @@ DEFAULT_NAME = 'chinese_holiday'
 CONF_UPDATE_INTERVAL = 'update_interval'
 CONF_SOLAR_ANNIVERSARY = 'solar_anniversary'
 CONF_LUNAR_ANNIVERSARY = 'lunar_anniversary'
+CONF_CALCULATE_AGE = 'calculate_age'
 
+
+# CALCULATE_AGE_DEFAULTS_SCHEMA = vol.Any(None, vol.Schema({
+#     vol.Optional(CONF_TRACK_NEW, default=DEFAULT_TRACK_NEW): cv.boolean,
+#     vol.Optional(CONF_AWAY_HIDE, default=DEFAULT_AWAY_HIDE): cv.boolean,
+# }))
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_SOLAR_ANNIVERSARY, default=[]): cv.ensure_list_csv,
     vol.Optional(CONF_LUNAR_ANNIVERSARY, default=[]): cv.ensure_list_csv,
+    vol.Optional(CONF_CALCULATE_AGE,default={}): dict,
     vol.Optional(CONF_UPDATE_INTERVAL, default=timedelta(minutes=360)): (vol.All(cv.time_period, cv.positive_timedelta)),
 })
 
@@ -51,9 +58,9 @@ SOLAR_ANNIVERSARY = [
 LUNAR_ANNIVERSARY = [
 ]
 
-CALCULATEAGE= {
-    #datetime.datetime(year=1990, month=9, day=18, hour=3, minute=32, second=54): '小思出生',
-    #datetime.datetime(year=2068, month=5, day=1, hour=12, minute=32, second=54): '小思金婚',
+#纪念日 指定时间的（出生日到今天的计时或今天到某一天还需要的时间例如金婚）
+CALCULATE_AGE = {
+    # '2010-10-10 08:23:12': 'xx',
 }
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
@@ -154,6 +161,7 @@ class ChineseHolidaySensor(Entity):
                 return key,days,annis
         return None,None,None
 
+    #今天是否是自定义的纪念日（阴历和阳历）
     def custom_anniversary(self):
         lunar_month = self._lunar.lunar()[1]
         lunar_day = self._lunar.lunar()[2]
@@ -169,12 +177,13 @@ class ChineseHolidaySensor(Entity):
         return anni
 
 
-    def calculate_holiday(self):
-        if not CALCULATEAGE:
+    def calculate_age(self):
+        if not CALCULATE_AGE:
             return
         now_day = datetime.datetime.now()
         count_dict = {}
-        for key, value in CALCULATEAGE.items():
+        for key, value in CALCULATE_AGE.items():
+            key = datetime.datetime.strptime(key,'%Y-%m-%d %H:%M:%S')
             if (now_day - key).total_seconds() > 0:
                 total_seconds = int((now_day - key).total_seconds())
                 year, remainder = divmod(total_seconds,60*60*24*365)
@@ -238,4 +247,4 @@ class ChineseHolidaySensor(Entity):
             self.attributes['法定节日日期'] = nearest['date']
             self.attributes['还有'] = nearest['day']
 
-        self.calculate_holiday()
+        self.calculate_age()
