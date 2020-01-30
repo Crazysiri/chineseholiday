@@ -82,7 +82,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     SOLAR_ANNIVERSARY = config[CONF_SOLAR_ANNIVERSARY]
     LUNAR_ANNIVERSARY = config[CONF_LUNAR_ANNIVERSARY]
     CALCULATE_AGE = config[CONF_CALCULATE_AGE]
-    
+
     sensors = [ChineseHolidaySensor(hass, name, interval)]
     add_devices(sensors, True)
 
@@ -172,17 +172,17 @@ class ChineseHolidaySensor(Entity):
 
     #今天是否是自定义的纪念日（阴历和阳历）
     def custom_anniversary(self):
-        lunar_month = self._lunar.lunar()[1]
-        lunar_day = self._lunar.lunar()[2]
-        solar_month = self._lunar.solar()[1]
-        solar_day = self._lunar.solar()[2]
-        lunar_anni = lunar.festival_handle(LUNAR_ANNIVERSARY,lunar_month,lunar_day)
-        solar_anni = lunar.festival_handle(SOLAR_ANNIVERSARY,solar_month,solar_day)
+        l_month = self._lunar.lunar()[1]
+        l_day = self._lunar.lunar()[2]
+        s_month = self._lunar.solar()[1]
+        s_day = self._lunar.solar()[2]
+        l_anni = lunar.festival_handle(LUNAR_ANNIVERSARY,l_month,l_day)
+        s_anni = lunar.festival_handle(SOLAR_ANNIVERSARY,s_month,s_day)
         anni = ''
-        if lunar_anni:
-            anni += lunar_anni
-        if solar_anni:
-            anni += solar_anni
+        if l_anni:
+            anni += l_anni
+        if s_anni:
+            anni += s_anni
         return anni
 
 
@@ -228,6 +228,9 @@ class ChineseHolidaySensor(Entity):
         return nearest_holiday_dict
 
     def _update(self):
+
+        self._lunar = lunar.CalendarToday()#重新赋值
+
         self._state = self._holiday.is_holiday_today()
         self.attributes['今天'] = self._lunar.solar_date_description()
         # self.attributes['今天'] = datetime.date.today().strftime('%Y{y}%m{m}%d{d}').format(y='年', m='月', d='日')

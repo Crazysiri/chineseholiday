@@ -5,7 +5,6 @@
 import requests
 import datetime
 import time
-from . import lunar
 import json
 
 FESTIVAL_TYPE= {

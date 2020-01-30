@@ -14,6 +14,13 @@ SOLAR_ANNIVERSARY = [
 LUNAR_ANNIVERSARY = [
 ]
 
+CALCULATE_AGE = [
+    {
+        'date':'2010-10-10 08:23:12',
+        'name':'xxx'
+    }
+]
+
 _lunar = lunar.CalendarToday()
 
 def calculate_age():
