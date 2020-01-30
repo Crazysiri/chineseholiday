@@ -122,6 +122,8 @@ def calculate_anniversary():
     return None,None,None
 
 def main():
+    import os
+    print(os.path.dirname(os.path.realpath(__file__)))
     print(calculate_anniversary())
 
 

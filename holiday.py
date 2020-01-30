@@ -20,7 +20,7 @@ class HolidayDatabase:
 
     def connect(self):
 
-    	self.conn = sqlite3.connect(os.path.realpath(__file__)+'/data.db',check_same_thread=False)
+    	self.conn = sqlite3.connect(os.path.dirname(os.path.realpath(__file__))+'/data.db',check_same_thread=False)
 
     	self.cursor = self.conn.cursor()
 
