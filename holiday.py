@@ -7,19 +7,8 @@ import datetime
 import time
 import json
 
-FESTIVAL_TYPE= {
-    'new_years_day' : '元旦',
-    'spring_festival' : '春节',
-    'tomb_sweeping_day' : '清明节',
-    'labour_day' : '国际劳动节',
-    'dragon_boat_festival' : '端午节',
-    'national_day' : '国庆节',
-    'mid_autumn_festival' : '中秋节',
-    'day_off' : '调休日需上班'
-}
-
-
 import sqlite3
+import os
 
 class HolidayDatabase:
     conn = None
@@ -31,7 +20,7 @@ class HolidayDatabase:
 
     def connect(self):
 
-    	self.conn = sqlite3.connect('data.db',check_same_thread=False)
+    	self.conn = sqlite3.connect(os.path.realpath(__file__)+'/data.db',check_same_thread=False)
 
     	self.cursor = self.conn.cursor()
 
