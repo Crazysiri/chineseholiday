@@ -22,16 +22,22 @@ lunar_year          = 0
 lunar_month         = 0
 lunar_day           = 0
 lunar_isLeapMonth   = False
-
-
+#   0620#aa 生日# #bb 纪念日#
+# '([\w+?\#?\(?\)?\d+\s?·?]*)' | solar_Fstv | #aa 生日# #bb 纪念日#
+# '([\w+?\#?\s?]*)' | festival_handle,weekday_Fstv |  #aa 生日# #bb 纪念日#
+# '([\w+?\#?]*)' | solar_Term | #aa
 def festival_handle(list,month,day):
-    month_str = str(month) if month > 9 else "0" + str(month)
-    day_str = str(day) if day > 9 else "0" + str(day)
-    pattern = "(" + month_str + day_str + ")([\w+?\#?\s?]*)"
+    month_str = "{:0>2d}".format(month)
+    day_str = "{:0>2d}".format(day)
+    # pattern = "(" + month_str + day_str + ")([\w+?\#?\s?]*)"
+    # pattern = "(%s%s)#([\s\S]+?)#"%(month_str,day_str)
+    pattern = '#([\s\S]+?)#'
+    md = month_str+day_str
     for fstv_item in list:
-        result = re.search(pattern, fstv_item)
-        if result is not None:
-            return result.group(2)
+
+        if md in fstv_item:
+            result = re.findall(pattern, fstv_item)
+            return ','.join(result)
 
 class LunarDate(object):
     _startDate = datetime.date(1900, 1, 31)
@@ -309,13 +315,7 @@ class Festival():
         "1225#圣诞节#",
         "1226#毛·泽东诞辰纪念日#"
         ]
-        solar_month_str = str(solar_month) if solar_month > 9 else "0" + str(solar_month)
-        solar_day_str = str(solar_day) if solar_day > 9 else "0" + str(solar_day)
-        pattern = "(" + solar_month_str + solar_day_str + ")([\w+?\#?\(?\)?\d+\s?·?]*)"
-        for solar_fstv_item in sFtv:
-            result = re.search(pattern, solar_fstv_item)
-            if result is not None:
-                return result.group(2)
+        return festival_handle(sFtv,solar_month,solar_day)
 
 
     def lunar_Fstv(lunar_month, lunar_day):
@@ -396,13 +396,8 @@ class Festival():
         "1206#大雪#",
         "1221#冬至#",
         ]
-        solar_month_str = str(solar_month) if solar_month > 9 else "0" + str(solar_month)
-        solar_day_str = str(solar_day) if solar_day > 9 else "0" + str(solar_day)
-        pattern = "(" + solar_month_str + solar_day_str + ")([\w+?\#?]*)"
-        for solarTerm_fstv_item in stFtv:
-            result = re.search(pattern, solarTerm_fstv_item)
-            if result is not None:
-                return result.group(2)
+        return festival_handle(stFtv,solar_month,solar_day)
+
 
 class Info():
     yearInfos = [

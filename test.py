@@ -125,6 +125,7 @@ def main():
     import os
     print(os.path.dirname(os.path.realpath(__file__)))
     print(calculate_anniversary())
+    print(lunar.festival_handle(SOLAR_ANNIVERSARY,6,20))
 
 
 if __name__ == '__main__':
