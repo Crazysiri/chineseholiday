@@ -2,10 +2,12 @@
 #coding=utf-8
 """
 中国节假日
-版本：0.1.0
+版本：0.1.1
 """
 from homeassistant.helpers.entity import Entity
+from homeassistant.core import callback
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers import event as evt
 import voluptuous as vol
 import logging
 from homeassistant.util import Throttle
@@ -65,13 +67,17 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 
 #公历 纪念日 每年都有的
+# {'0101':['aa生日','bb生日']}
 SOLAR_ANNIVERSARY = {}
 
 #农历 纪念日 每年都有的
+# {'0101':['aa生日','bb生日']}
 LUNAR_ANNIVERSARY = {}
 
 #纪念日 指定时间的（出生日到今天的计时或今天到某一天还需要的时间例如金婚）
 CALCULATE_AGE = {}
+
+NOTIFY_PRINCIPLES = {}
     # '2010-10-10 08:23:12': 'xx',
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
@@ -82,29 +88,34 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     global SOLAR_ANNIVERSARY
     global LUNAR_ANNIVERSARY
     global CALCULATE_AGE
+    global NOTIFY_PRINCIPLES
     SOLAR_ANNIVERSARY = config[CONF_SOLAR_ANNIVERSARY]
     LUNAR_ANNIVERSARY = config[CONF_LUNAR_ANNIVERSARY]
     CALCULATE_AGE = config[CONF_CALCULATE_AGE]
-
-    sensors = [ChineseHolidaySensor(hass, name, interval)]
+    NOTIFY_PRINCIPLES = config[CONF_NOTIFY_PRINCIPLES]
+    script_name = config[CONF_NOTIFY_SCRIPT_NAME]
+    sensors = [ChineseHolidaySensor(hass, name,script_name, interval)]
     add_devices(sensors, True)
+
 
 class ChineseHolidaySensor(Entity):
 
     _holiday = None
     _lunar = None
 
-    def __init__(self, hass, name, interval):
+    def __init__(self, hass, name,script_name, interval):
         """Initialize the sensor."""
         self.client_name = name
         self._state = None
         self._hass = hass
+        self._script_name = script_name
         self._holiday = holiday.Holiday()
         self._lunar = lunar.CalendarToday()
         self.attributes = {}
         self.entity_id = generate_entity_id(
             'sensor.{}', self.client_name, hass=self._hass)
         self.update = Throttle(interval)(self._update)
+        self.setListener() #设置脚本通知的定时器
 
     @property
     def name(self):
@@ -125,6 +136,70 @@ class ChineseHolidaySensor(Entity):
     def device_state_attributes(self):
         """Return the state attributes."""
         return self.attributes
+
+    def setListener(self):
+        self._listener = None
+        now = datetime.datetime.now()
+        notify_date_str = now.strftime('%Y-%m-%d') + ' 09:00:00' #目前预设是每天9点通知
+        notify_date = datetime.datetime.strptime(notify_date_str, "%Y-%m-%d %H:%M:%S")
+        # _LOGGER.error(notify_date)
+        if notify_date < now:
+            # _LOGGER.error('小于')
+            notify_date = notify_date + timedelta(days=1) #已经过了就设置为明天的时间
+            # _LOGGER.error(notify_date)
+        self._listener = evt.async_track_point_in_time(
+            self._hass, self._date_listener_callback, notify_date
+        )
+
+
+    @callback
+    def _date_listener_callback(self, now):
+        self.setListener() #重设定时器
+        self.notify() #执行通知
+
+    def notify(self):
+        #[{'days':1,'list':['国庆节']}]
+        def dates_need_to_notify():
+            """
+                {
+                 '14|7|1':[{'date':'0101','solar':True}]
+                }
+            """
+            dates = []
+            for key,value in NOTIFY_PRINCIPLES.items():
+                days = key.split('|') #解析需要匹配的天 14|7|1 分别还有14，7，1天时推送
+                for item in value:
+                    date = item['date'] #0101 格式的日期字符串
+                    solar = item['solar'] #是否是公历
+                    fes_date = None
+                    fes_list = []
+                    if solar:
+                        date_str = str(self._lunar.solar()[0])+date #20200101
+                        fes_date = datetime.datetime.strptime(date_str,'%Y%m%d')
+                        fes_list = Festival._solar_festival[date] + SOLAR_ANNIVERSARY[date]
+                    else:
+                        month = int(date[:2])
+                        day = int(date[2:])
+                        fes_date = lunar.CalendarToday.lunar_to_solar(self._lunar.solar()[0],month,day)#下标和位置
+                        fes_list = Festival._lunar_festival[date] + LUNAR_ANNIVERSARY[date]
+
+                    now_str = datetime.datetime.now().strftime('%Y-%m-%d')
+                    today = datetime.datetime.strptime(now_str, "%Y-%m-%d")
+                    days = (fes_date - today).days
+                    if str(days) in days:
+                        item['day'] = days
+                        item['list'] = fes_list
+                        dates.append(item)
+            return dates
+
+        if self._script_name and NOTIFY_PRINCIPLES:
+            dates = dates_need_to_notify()
+            messages = []
+            for item in dates:
+                days = item['days']
+                fes_list = item['list']
+                messages.append('距离 ' + ','.join(fes_list) + '还有' + str(days) + '天')
+            self._hass.services.call('script',self._script_name,{'message':','.join(messages)})
 
     #计算纪念日（每年都有的）
     def calculate_anniversary(self):
@@ -231,8 +306,6 @@ class ChineseHolidaySensor(Entity):
         return nearest_holiday_dict
 
     def _update(self):
-        # _LOGGER.error(self._hass.services)
-        self._hass.services.call('script','test',{'index':1})
         self.attributes = {} #重置attributes
         self._lunar = lunar.CalendarToday()#重新赋值
 
