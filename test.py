@@ -6,8 +6,6 @@ from datetime import timedelta
 import holiday
 import lunar
 
-
-
 SOLAR_ANNIVERSARY = [
     "0620#aa 生日# #bb 纪念日#",
     "0721#cc 生日#"
@@ -126,7 +124,47 @@ def main():
     print(os.path.dirname(os.path.realpath(__file__)))
     print(calculate_anniversary())
     print(lunar.festival_handle(SOLAR_ANNIVERSARY,6,20))
+    stFtv = [
+    "0106#小寒#",
+    "0120#大寒#",
+    "0204#立春#",
+    "0219#雨水#",
+    "0305#惊蛰#",
+    "0320#春分#",
+    "0404#清明#",
+    "0420#谷雨#",
+    "0505#立夏#",
+    "0521#小满#",
+    "0605#芒种#",
+    "0621#夏至#",
+    "0707#小暑#",
+    "0722#大暑#",
+    "0807#立秋#",
+    "0823#处暑#",
+    "0907#白露#",
+    "0922#秋分#",
+    "1008#寒露#",
+    "1023#霜降#",
+    "1107#立冬#",
+    "1122#小雪#",
+    "1206#大雪#",
+    "1221#冬至#",
+    ]
+    toDict(stFtv)
 
+
+def toDict(list):
+    dict = {}
+    for s in list:
+        comps = s.split('#')
+        fs = []
+        for comp in comps:
+            comp = comp.strip()
+            if comp and comp != comps[0]:
+                fs.append(comp)
+        dict[str(comps[0])] = fs
+    print(dict)
+    pass
 
 if __name__ == '__main__':
     main()

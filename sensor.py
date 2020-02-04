@@ -18,6 +18,8 @@ from datetime import timedelta
 from . import holiday
 from . import lunar
 
+_LOGGER = logging.getLogger(__name__)
+
 """
     cal = lunar.CalendarToday()
     print(cal.solar_Term())
@@ -38,36 +40,38 @@ CONF_LUNAR_ANNIVERSARY = 'lunar_anniversary'
 CONF_CALCULATE_AGE = 'calculate_age'
 CONF_CALCULATE_AGE_DATE = 'date'
 CONF_CALCULATE_AGE_NAME = 'name'
-
+CONF_NOTIFY_SCRIPT_NAME = 'notify_script_name'
+CONF_NOTIFY_PRINCIPLES = 'notify_principles'
 
 # CALCULATE_AGE_DEFAULTS_SCHEMA = vol.Any(None, vol.Schema({
 #     vol.Optional(CONF_TRACK_NEW, default=DEFAULT_TRACK_NEW): cv.boolean,
 #     vol.Optional(CONF_AWAY_HIDE, default=DEFAULT_AWAY_HIDE): cv.boolean,
 # }))
+
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
+    vol.Optional(CONF_NOTIFY_SCRIPT_NAME, default=''): cv.string,
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-    vol.Optional(CONF_SOLAR_ANNIVERSARY, default=[]): cv.ensure_list_csv,
-    vol.Optional(CONF_LUNAR_ANNIVERSARY, default=[]): cv.ensure_list_csv,
+    vol.Optional(CONF_SOLAR_ANNIVERSARY, default={}): dict,
+    vol.Optional(CONF_LUNAR_ANNIVERSARY, default={}): dict,
     vol.Optional(CONF_CALCULATE_AGE,default=[]): [
         {
             vol.Optional(CONF_CALCULATE_AGE_DATE): cv.string,
             vol.Optional(CONF_CALCULATE_AGE_NAME): cv.string,
         }
     ],
-    vol.Optional(CONF_UPDATE_INTERVAL, default=timedelta(minutes=360)): (vol.All(cv.time_period, cv.positive_timedelta)),
+    vol.Optional(CONF_NOTIFY_PRINCIPLES,default={}): dict,
+    vol.Optional(CONF_UPDATE_INTERVAL, default=timedelta(seconds=1)): (vol.All(cv.time_period, cv.positive_timedelta)),
 })
 
 
 #公历 纪念日 每年都有的
-SOLAR_ANNIVERSARY = [
-]
+SOLAR_ANNIVERSARY = {}
+
 #农历 纪念日 每年都有的
-LUNAR_ANNIVERSARY = [
-]
+LUNAR_ANNIVERSARY = {}
 
 #纪念日 指定时间的（出生日到今天的计时或今天到某一天还需要的时间例如金婚）
-CALCULATE_AGE = [
-]
+CALCULATE_AGE = {}
     # '2010-10-10 08:23:12': 'xx',
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
@@ -75,7 +79,6 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
     name = config[CONF_NAME]
     interval = config.get(CONF_UPDATE_INTERVAL)
-
     global SOLAR_ANNIVERSARY
     global LUNAR_ANNIVERSARY
     global CALCULATE_AGE
@@ -125,15 +128,8 @@ class ChineseHolidaySensor(Entity):
 
     #计算纪念日（每年都有的）
     def calculate_anniversary(self):
-        def anniversary_handle(input_str):
-            list = input_str.split('#')
-            annis = []
-            for i in range(1,len(list)):
-                s = list[i]
-                s = s.strip()
-                if s:
-                    annis.append(s)
-            return ','.join(annis)
+        def anniversary_handle(list):
+            return ','.join(list)
         """
             {
                 '20200101':[{'anniversary':'0101#xx生日#','solar':True}]
@@ -141,10 +137,9 @@ class ChineseHolidaySensor(Entity):
         """
         anniversaries = {}
 
-        for l in LUNAR_ANNIVERSARY:
-            date_str = l.split('#')[0]
-            month = int(date_str[:2])
-            day = int(date_str[2:])
+        for key,value in LUNAR_ANNIVERSARY.items():
+            month = int(key[:2])
+            day = int(key[2:])
             solar_date = lunar.CalendarToday.lunar_to_solar(self._lunar.solar()[0],month,day)#下标和位置
             date_str = solar_date.strftime('%Y%m%d')
             try:
@@ -152,17 +147,16 @@ class ChineseHolidaySensor(Entity):
             except Exception as e:
                 anniversaries[date_str] = []
                 list = anniversaries[date_str]
-            list.append({'anniversary':anniversary_handle(l),'solar':False})
+            list.append({'anniversary':anniversary_handle(value),'solar':False})
 
-        for s in SOLAR_ANNIVERSARY:
-            date_str = s.split('#')[0]
-            date_str = str(self._lunar.solar()[0])+date_str #20200101
+        for key,value in SOLAR_ANNIVERSARY.items():
+            date_str = str(self._lunar.solar()[0])+key #20200101
             try:
                 list = anniversaries[date_str]
             except Exception as e:
                 anniversaries[date_str] = []
                 list = anniversaries[date_str]
-            list.append({'anniversary':anniversary_handle(s),'solar':True})
+            list.append({'anniversary':anniversary_handle(value),'solar':True})
 
 
     #根据key 排序 因为key就是日期字符串
@@ -237,7 +231,8 @@ class ChineseHolidaySensor(Entity):
         return nearest_holiday_dict
 
     def _update(self):
-
+        # _LOGGER.error(self._hass.services)
+        self._hass.services.call('script','test',{'index':1})
         self.attributes = {} #重置attributes
         self._lunar = lunar.CalendarToday()#重新赋值
 
