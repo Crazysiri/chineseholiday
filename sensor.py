@@ -140,16 +140,17 @@ class ChineseHolidaySensor(Entity):
 
     def setListener(self):
 
-        async def _date_listener_callback(_):
-            _LOGGER.info('_date_listener_callback')
+        @callback
+        def _date_listener_callback(_):
             self.setListener() #重设定时器
             self.notify() #执行通知
 
-        # self._listener = None
+        self._listener = None
         # now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         now = datetime.datetime.utcnow() + timedelta(hours=8)
-        notify_date_str = now.strftime('%Y-%m-%d') + ' 12:00:00' #目前预设是每天9点通知
+        notify_date_str = now.strftime('%Y-%m-%d') + ' 13:45:00' #目前预设是每天9点通知
         notify_date = datetime.datetime.strptime(notify_date_str, "%Y-%m-%d %H:%M:%S")
+        # notify_date = now + timedelta(seconds=10)
         _LOGGER.error('now')
         _LOGGER.error(now)
         if notify_date < now:
@@ -157,13 +158,20 @@ class ChineseHolidaySensor(Entity):
             notify_date = notify_date + timedelta(days=1) #已经过了就设置为明天的时间
         _LOGGER.error('notify_date')
         _LOGGER.error(notify_date)
-        evt.async_track_point_in_time(
+        self._listener = evt.async_track_point_in_time(
             self._hass, _date_listener_callback, notify_date
         )
 
 
 
     def notify(self):
+        import threading
+        def call_service_script(message):
+            _LOGGER.info('begin call')
+            _LOGGER.info(message)
+            self._hass.services.call('script',self._script_name,{'message':message})
+            _LOGGER.info('end call')
+
         #[{'days':1,'list':['国庆节']}]
         def dates_need_to_notify():
             """
@@ -214,13 +222,13 @@ class ChineseHolidaySensor(Entity):
 
         if self._script_name and NOTIFY_PRINCIPLES:
             dates = dates_need_to_notify()
-            _LOGGER.info(dates)
             messages = []
             for item in dates:
                 days = item['day']
                 fes_list = item['list']
                 messages.append('距离 ' + ','.join(fes_list) + '还有' + str(days) + '天')
-            self._hass.services.call('script',self._script_name,{'message':','.join(messages)})
+            t1 = threading.Thread(target=call_service_script,args=(','.join(messages),))
+            t1.start()
 
     #计算纪念日（每年都有的）
     def calculate_anniversary(self):
