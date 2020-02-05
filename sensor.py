@@ -140,7 +140,7 @@ class ChineseHolidaySensor(Entity):
     def setListener(self):
         self._listener = None
         now = datetime.datetime.now()
-        notify_date_str = now.strftime('%Y-%m-%d') + ' 09:00:00' #目前预设是每天9点通知
+        notify_date_str = now.strftime('%Y-%m-%d') + ' 09:40:00' #目前预设是每天9点通知
         notify_date = datetime.datetime.strptime(notify_date_str, "%Y-%m-%d %H:%M:%S")
         # _LOGGER.error(notify_date)
         if notify_date < now:
@@ -176,12 +176,26 @@ class ChineseHolidaySensor(Entity):
                     if solar:
                         date_str = str(self._lunar.solar()[0])+date #20200101
                         fes_date = datetime.datetime.strptime(date_str,'%Y%m%d')
-                        fes_list = lunar.Festival._solar_festival[date] + SOLAR_ANNIVERSARY[date]
+                        try:
+                            fes_list = lunar.Festival._solar_festival[date]
+                        except Exception as e:
+                            pass
+                        try:
+                            fes_list += SOLAR_ANNIVERSARY[date]
+                        except Exception as e:
+                            pass
                     else:
                         month = int(date[:2])
                         day = int(date[2:])
                         fes_date = lunar.CalendarToday.lunar_to_solar(self._lunar.solar()[0],month,day)#下标和位置
-                        fes_list = lunar.Festival._lunar_festival[date] + LUNAR_ANNIVERSARY[date]
+                        try:
+                            fes_list = lunar.Festival._lunar_festival[date]
+                        except Exception as e:
+                            pass
+                        try:
+                            fes_list += LUNAR_ANNIVERSARY[date]
+                        except Exception as e:
+                            pass
 
                     now_str = datetime.datetime.now().strftime('%Y-%m-%d')
                     today = datetime.datetime.strptime(now_str, "%Y-%m-%d")
