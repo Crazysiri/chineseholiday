@@ -148,16 +148,16 @@ class ChineseHolidaySensor(Entity):
         self._listener = None
         # now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         now = datetime.datetime.utcnow() + timedelta(hours=8)
-        notify_date_str = now.strftime('%Y-%m-%d') + ' 14:20:00' #目前预设是每天9点通知
+        notify_date_str = now.strftime('%Y-%m-%d') + ' 09:00:00' #目前预设是每天9点通知
         notify_date = datetime.datetime.strptime(notify_date_str, "%Y-%m-%d %H:%M:%S")
         # notify_date = now + timedelta(seconds=10)
-        _LOGGER.error('now')
-        _LOGGER.error(now)
+        # _LOGGER.error('now')
+        # _LOGGER.error(now)
         if notify_date < now:
-            _LOGGER.error('小于')
+            # _LOGGER.error('小于')
             notify_date = notify_date + timedelta(days=1) #已经过了就设置为明天的时间
-        _LOGGER.error('notify_date')
-        _LOGGER.error(notify_date)
+        # _LOGGER.error('notify_date')
+        # _LOGGER.error(notify_date)
         self._listener = evt.async_track_point_in_time(
             self._hass, _date_listener_callback, notify_date
         )
