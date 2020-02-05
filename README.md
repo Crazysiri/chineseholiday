@@ -2,15 +2,6 @@
 
 ### 日历及节假日显示组件
 
-参考：https://bbs.hassbian.com/forum.php?mod=viewthread&tid=1237&highlight=农历
-
-个人感觉有些地方不太适合我的场景的，所以重构了部分代码，增加了一些功能，去掉了一些功能。
-
-
-
-![示例图](https://github.com/Crazysiri/chineseholiday/blob/master/snapshot.png)
-
-
 #############################################################################
 
 2020.02.04 更新 - version:0.1.1
@@ -41,6 +32,16 @@ test:
 
 
 #############################################################################
+
+
+参考：https://bbs.hassbian.com/forum.php?mod=viewthread&tid=1237&highlight=农历
+
+个人感觉有些地方不太适合我的场景的，所以重构了部分代码，增加了一些功能，去掉了一些功能。
+
+
+
+![示例图](https://github.com/Crazysiri/chineseholiday/blob/master/snapshot.png)
+
 
 去掉的功能：
 
