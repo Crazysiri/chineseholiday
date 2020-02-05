@@ -22,22 +22,28 @@
 可以实现的功能：10.1国庆节还有14天的时候通知
 
 配置文件（可以配置多个规则，但目前只有一个脚本）：
+
+```
 notify_script_name: 'test' //调用脚本名字
 notify_principles: //调用脚本规则
   '14|7|1':  //未来某个日期（下面每个date字段对应）离现在还有 14 天 7天 1天时调用脚本
     - date: "1001" //需要调用脚本的日期
       solar: True
+```
 
 ios的通知脚本可以是：
 
 注：下面的脚本中 message 是回调的拼接好的字符串，必须是这个字段名，
     message的内容大概为：距离xx生日还有xx天
+
+```
 test:
   sequence:
     - service: notify.mobile_app_xxx
       data_template:
         title: "节假日提醒"
         message: "{{ message }}"
+```
 
 
 #############################################################################
