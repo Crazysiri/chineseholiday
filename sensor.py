@@ -140,7 +140,7 @@ class ChineseHolidaySensor(Entity):
     def setListener(self):
         self._listener = None
         now = datetime.datetime.now()
-        notify_date_str = now.strftime('%Y-%m-%d') + ' 09:40:00' #目前预设是每天9点通知
+        notify_date_str = now.strftime('%Y-%m-%d') + ' 10:10:00' #目前预设是每天9点通知
         notify_date = datetime.datetime.strptime(notify_date_str, "%Y-%m-%d %H:%M:%S")
         # _LOGGER.error(notify_date)
         if notify_date < now:
