@@ -176,12 +176,12 @@ class ChineseHolidaySensor(Entity):
                     if solar:
                         date_str = str(self._lunar.solar()[0])+date #20200101
                         fes_date = datetime.datetime.strptime(date_str,'%Y%m%d')
-                        fes_list = Festival._solar_festival[date] + SOLAR_ANNIVERSARY[date]
+                        fes_list = lunar.Festival._solar_festival[date] + SOLAR_ANNIVERSARY[date]
                     else:
                         month = int(date[:2])
                         day = int(date[2:])
                         fes_date = lunar.CalendarToday.lunar_to_solar(self._lunar.solar()[0],month,day)#下标和位置
-                        fes_list = Festival._lunar_festival[date] + LUNAR_ANNIVERSARY[date]
+                        fes_list = lunar.Festival._lunar_festival[date] + LUNAR_ANNIVERSARY[date]
 
                     now_str = datetime.datetime.now().strftime('%Y-%m-%d')
                     today = datetime.datetime.strptime(now_str, "%Y-%m-%d")
