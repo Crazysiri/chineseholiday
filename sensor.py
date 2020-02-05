@@ -199,9 +199,9 @@ class ChineseHolidaySensor(Entity):
 
                     now_str = datetime.datetime.now().strftime('%Y-%m-%d')
                     today = datetime.datetime.strptime(now_str, "%Y-%m-%d")
-                    days = (fes_date - today).days
-                    if str(days) in days:
-                        item['day'] = days
+                    diff = (fes_date - today).days
+                    if str(diff) in days:
+                        item['day'] = diff
                         item['list'] = fes_list
                         dates.append(item)
             return dates
