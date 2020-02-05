@@ -17,6 +17,7 @@ from homeassistant.const import (
 from homeassistant.helpers.entity import generate_entity_id
 import datetime
 from datetime import timedelta
+import time
 from . import holiday
 from . import lunar
 
@@ -138,24 +139,29 @@ class ChineseHolidaySensor(Entity):
         return self.attributes
 
     def setListener(self):
-        self._listener = None
-        now = datetime.datetime.now()
-        notify_date_str = now.strftime('%Y-%m-%d') + ' 10:10:00' #目前预设是每天9点通知
+
+        async def _date_listener_callback(_):
+            _LOGGER.info('_date_listener_callback')
+            self.setListener() #重设定时器
+            self.notify() #执行通知
+
+        # self._listener = None
+        # now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        now = datetime.datetime.utcnow() + timedelta(hours=8)
+        notify_date_str = now.strftime('%Y-%m-%d') + ' 12:00:00' #目前预设是每天9点通知
         notify_date = datetime.datetime.strptime(notify_date_str, "%Y-%m-%d %H:%M:%S")
-        # _LOGGER.error(notify_date)
+        _LOGGER.error('now')
+        _LOGGER.error(now)
         if notify_date < now:
-            # _LOGGER.error('小于')
+            _LOGGER.error('小于')
             notify_date = notify_date + timedelta(days=1) #已经过了就设置为明天的时间
-            # _LOGGER.error(notify_date)
-        self._listener = evt.async_track_point_in_time(
-            self._hass, self._date_listener_callback, notify_date
+        _LOGGER.error('notify_date')
+        _LOGGER.error(notify_date)
+        evt.async_track_point_in_time(
+            self._hass, _date_listener_callback, notify_date
         )
 
 
-    @callback
-    def _date_listener_callback(self, now):
-        self.setListener() #重设定时器
-        self.notify() #执行通知
 
     def notify(self):
         #[{'days':1,'list':['国庆节']}]
@@ -200,7 +206,7 @@ class ChineseHolidaySensor(Entity):
                     now_str = datetime.datetime.now().strftime('%Y-%m-%d')
                     today = datetime.datetime.strptime(now_str, "%Y-%m-%d")
                     diff = (fes_date - today).days
-                    if str(diff) in days:
+                    if (str(diff) in days) and fes_list:
                         item['day'] = diff
                         item['list'] = fes_list
                         dates.append(item)
@@ -208,9 +214,10 @@ class ChineseHolidaySensor(Entity):
 
         if self._script_name and NOTIFY_PRINCIPLES:
             dates = dates_need_to_notify()
+            _LOGGER.info(dates)
             messages = []
             for item in dates:
-                days = item['days']
+                days = item['day']
                 fes_list = item['list']
                 messages.append('距离 ' + ','.join(fes_list) + '还有' + str(days) + '天')
             self._hass.services.call('script',self._script_name,{'message':','.join(messages)})
