@@ -19,7 +19,8 @@ notify_script_name: 'test' //调用脚本名字
 notify_principles: //调用脚本规则
   '14|7|1':  //未来某个日期（下面每个date字段对应）离现在还有 14 天 7天 1天时调用脚本
     - date: "1001" //需要调用脚本的日期
-      solar: True
+      solar: False //非阳历 即阴历
+    - date: "1002" //需要调用脚本的日期 solar 不写 默认为True 即阳历
 ```
 
 ios的通知脚本可以是：
@@ -103,5 +104,7 @@ sensor:
     notify_principles:
       '14|7|1':
         - date: "0101"
-          solar: True
+          solar: False
+        - date: "0102"
+
 ```
