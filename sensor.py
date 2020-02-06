@@ -43,8 +43,11 @@ CONF_LUNAR_ANNIVERSARY = 'lunar_anniversary'
 CONF_CALCULATE_AGE = 'calculate_age'
 CONF_CALCULATE_AGE_DATE = 'date'
 CONF_CALCULATE_AGE_NAME = 'name'
+
 CONF_NOTIFY_SCRIPT_NAME = 'notify_script_name'
 CONF_NOTIFY_PRINCIPLES = 'notify_principles'
+CONF_NOTIFY_PRINCIPLES_DATE = 'date'
+CONF_NOTIFY_PRINCIPLES_SOLAR = 'solar'
 
 # CALCULATE_AGE_DEFAULTS_SCHEMA = vol.Any(None, vol.Schema({
 #     vol.Optional(CONF_TRACK_NEW, default=DEFAULT_TRACK_NEW): cv.boolean,
@@ -54,15 +57,26 @@ CONF_NOTIFY_PRINCIPLES = 'notify_principles'
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NOTIFY_SCRIPT_NAME, default=''): cv.string,
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-    vol.Optional(CONF_SOLAR_ANNIVERSARY, default={}): dict,
-    vol.Optional(CONF_LUNAR_ANNIVERSARY, default={}): dict,
+    vol.Optional(CONF_SOLAR_ANNIVERSARY, default={}): {
+        str : [str]
+    },
+    vol.Optional(CONF_LUNAR_ANNIVERSARY, default={}): {
+        str : [str]
+    },
     vol.Optional(CONF_CALCULATE_AGE,default=[]): [
         {
             vol.Optional(CONF_CALCULATE_AGE_DATE): cv.string,
             vol.Optional(CONF_CALCULATE_AGE_NAME): cv.string,
         }
     ],
-    vol.Optional(CONF_NOTIFY_PRINCIPLES,default={}): dict,
+    vol.Optional(CONF_NOTIFY_PRINCIPLES,default={}): {
+        str : [
+            {
+                vol.Optional(CONF_NOTIFY_PRINCIPLES_DATE): cv.string,
+                vol.Optional(CONF_NOTIFY_PRINCIPLES_SOLAR,default=True): cv.boolean,
+            }
+        ]
+    },
     vol.Optional(CONF_UPDATE_INTERVAL, default=timedelta(seconds=1)): (vol.All(cv.time_period, cv.positive_timedelta)),
 })
 
