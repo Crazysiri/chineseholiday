@@ -2,7 +2,7 @@
 #coding=utf-8
 """
 中国节假日
-版本：0.1.1
+版本：0.1.2
 """
 from homeassistant.helpers.entity import Entity
 from homeassistant.core import callback

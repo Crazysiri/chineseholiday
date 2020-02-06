@@ -8,6 +8,10 @@ A Chinese Calendar Library in Python
 
 
 import os, io, sys, re, time, datetime, base64
+path = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(path)
+import  term
+from term import jieqi
 
 __version__ = "$Rev: 123 $"
 __all__ = ['LunarDate']
@@ -217,19 +221,20 @@ class Festival():
     _lunar_festival = {'0101': ['春节'], '0115': ['元宵节'], '0202': ['春龙节'], '0505': ['端午节'], '0707': ['七夕情人节'], '0715': ['中元节'], '0815': ['中秋节'], '0909': ['重阳节'], '1208': ['腊八节'], '1223': ['小年'], '1229': ['除夕']}
 
     #每年数据不一样，此为2012年内的数据
-    _solar_term = {'0106': ['小寒'], '0120': ['大寒'], '0204': ['立春'], '0219': ['雨水'], '0305': ['惊蛰'], '0320': ['春分'], '0404': ['清明'], '0420': ['谷雨'], '0505': ['立夏'], '0521': ['小满'], '0605': ['芒种'], '0621': ['夏至'], '0707': ['小暑'], '0722': ['大暑'], '0807': ['立秋'], '0823': ['处暑'], '0907': ['白露'], '0922': ['秋分'], '1008': ['寒露'], '1023': ['霜降'], '1107': ['立冬'], '1122': ['小雪'], '1206': ['大雪'], '1221': ['冬至']}
+    _solar_term = {}
     #国历节日
-    def solar_Fstv(solar_month, solar_day):
+    @classmethod
+    def solar_Fstv(cls,solar_month, solar_day):
 
         return festival_handle(Festival._solar_festival,solar_month,solar_day)
 
-
-    def lunar_Fstv(lunar_month, lunar_day):
+    @classmethod
+    def lunar_Fstv(cls,lunar_month, lunar_day):
         #农历节日
         return festival_handle(Festival._lunar_festival,lunar_month,lunar_day)
 
-
-    def weekday_Fstv(solar_month, solar_day, solar_weekday):
+    @classmethod
+    def weekday_Fstv(cls,solar_month, solar_day, solar_weekday):
         #国历节日 某月的第几个星期几
         wFtv = [
         "0150#世界防治麻风病日#", #一月的最后一个星期日（月倒数第一个星期日）
@@ -261,7 +266,14 @@ class Festival():
         #如何计算某些最后一个星期几的情况，..........
 
     #24节气
-    def solar_Term(solar_month, solar_day):
+    @classmethod
+    def solar_Term(cls,solar_month, solar_day):
+        if not Festival._solar_term:
+            terms = jieqi().creat_year_jieqi(datetime.date.today().year)
+            for item in terms:
+                comps = item['time'].split('-')
+                Festival._solar_term[comps[1]+comps[2]] = [item['name']]
+            # print(Festival._solar_term)
         return festival_handle(Festival._solar_term,solar_month,solar_day)
 
 
@@ -368,11 +380,11 @@ class SolarDate():
 
 class CalendarToday:
 
-    solar = None
-    lunar = None
+    _solar = None
+    _lunar = None
     def __init__(self):
-        solar = SolarDate()
-        lunar = LunarDate.fromSolarDate(solar_year,solar_month,solar_day)
+        _solar = SolarDate()
+        _lunar = LunarDate.fromSolarDate(solar_year,solar_month,solar_day)
 
     def _solar_festival(self):
         #公历节日
@@ -437,8 +449,8 @@ def main():
     print(cal.solar())
     print(cal.lunar())
     print(CalendarToday.lunar_to_solar(2020,1,5))
-
-
+    print(Festival.solar_Term(2,4))
+    
 if __name__ == '__main__':
     main()
 
