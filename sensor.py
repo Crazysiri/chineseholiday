@@ -151,13 +151,11 @@ class ChineseHolidaySensor(Entity):
         notify_date_str = now.strftime('%Y-%m-%d') + ' 09:00:00' #目前预设是每天9点通知
         notify_date = datetime.datetime.strptime(notify_date_str, "%Y-%m-%d %H:%M:%S")
         # notify_date = now + timedelta(seconds=10)
-        # _LOGGER.error('now')
-        # _LOGGER.error(now)
         if notify_date < now:
-            # _LOGGER.error('小于')
+            _LOGGER.info('小于')
             notify_date = notify_date + timedelta(days=1) #已经过了就设置为明天的时间
-        # _LOGGER.error('notify_date')
-        # _LOGGER.error(notify_date)
+        _LOGGER.info('notify_date')
+        _LOGGER.info(notify_date)
         self._listener = evt.async_track_point_in_time(
             self._hass, _date_listener_callback, notify_date
         )
@@ -181,6 +179,8 @@ class ChineseHolidaySensor(Entity):
             """
             dates = []
             for key,value in NOTIFY_PRINCIPLES.items():
+                _LOGGER.info(key)
+                _LOGGER.info(value)
                 days = key.split('|') #解析需要匹配的天 14|7|1 分别还有14，7，1天时推送
                 for item in value:
                     date = item['date'] #0101 格式的日期字符串
@@ -189,7 +189,7 @@ class ChineseHolidaySensor(Entity):
                     fes_list = []
                     if solar:
                         date_str = str(self._lunar.solar()[0])+date #20200101
-                        fes_date = datetime.datetime.strptime(date_str,'%Y%m%d')
+                        fes_date = datetime.datetime.strptime(date_str,'%Y%m%d').date()
                         try:
                             fes_list = lunar.Festival._solar_festival[date]
                         except Exception as e:
@@ -212,12 +212,14 @@ class ChineseHolidaySensor(Entity):
                             pass
 
                     now_str = datetime.datetime.now().strftime('%Y-%m-%d')
-                    today = datetime.datetime.strptime(now_str, "%Y-%m-%d")
+                    today = datetime.datetime.strptime(now_str, "%Y-%m-%d").date()
                     diff = (fes_date - today).days
+                        
                     if (str(diff) in days) and fes_list:
                         item['day'] = diff
                         item['list'] = fes_list
                         dates.append(item)
+
             return dates
 
         if self._script_name and NOTIFY_PRINCIPLES:
@@ -227,8 +229,9 @@ class ChineseHolidaySensor(Entity):
                 days = item['day']
                 fes_list = item['list']
                 messages.append('距离 ' + ','.join(fes_list) + '还有' + str(days) + '天')
-            t1 = threading.Thread(target=call_service_script,args=(','.join(messages),))
-            t1.start()
+            if messages:
+                t1 = threading.Thread(target=call_service_script,args=(','.join(messages),))
+                t1.start()
 
     #计算纪念日（每年都有的）
     def calculate_anniversary(self):
