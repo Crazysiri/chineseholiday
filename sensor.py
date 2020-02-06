@@ -45,6 +45,7 @@ CONF_CALCULATE_AGE_DATE = 'date'
 CONF_CALCULATE_AGE_NAME = 'name'
 
 CONF_NOTIFY_SCRIPT_NAME = 'notify_script_name'
+CONF_NOTIFY_TIME = 'notify_time'
 CONF_NOTIFY_PRINCIPLES = 'notify_principles'
 CONF_NOTIFY_PRINCIPLES_DATE = 'date'
 CONF_NOTIFY_PRINCIPLES_SOLAR = 'solar'
@@ -55,6 +56,7 @@ CONF_NOTIFY_PRINCIPLES_SOLAR = 'solar'
 # }))
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
+    vol.Optional(CONF_NOTIFY_TIME,default='09:00:00'): cv.time,
     vol.Optional(CONF_NOTIFY_SCRIPT_NAME, default=''): cv.string,
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_SOLAR_ANNIVERSARY, default={}): {
@@ -109,7 +111,8 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     CALCULATE_AGE = config[CONF_CALCULATE_AGE]
     NOTIFY_PRINCIPLES = config[CONF_NOTIFY_PRINCIPLES]
     script_name = config[CONF_NOTIFY_SCRIPT_NAME]
-    sensors = [ChineseHolidaySensor(hass, name,script_name, interval)]
+    notify_time = config[CONF_NOTIFY_TIME]
+    sensors = [ChineseHolidaySensor(hass, name,notify_time,script_name, interval)]
     add_devices(sensors, True)
 
 
@@ -118,12 +121,13 @@ class ChineseHolidaySensor(Entity):
     _holiday = None
     _lunar = None
 
-    def __init__(self, hass, name,script_name, interval):
+    def __init__(self, hass, name,notify_time,script_name, interval):
         """Initialize the sensor."""
         self.client_name = name
         self._state = None
         self._hass = hass
         self._script_name = script_name
+        self._notify_time = notify_time
         self._holiday = holiday.Holiday()
         self._lunar = lunar.CalendarToday()
         self.attributes = {}
@@ -162,7 +166,7 @@ class ChineseHolidaySensor(Entity):
         self._listener = None
         # now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         now = datetime.datetime.utcnow() + timedelta(hours=8)
-        notify_date_str = now.strftime('%Y-%m-%d') + ' 09:00:00' #目前预设是每天9点通知
+        notify_date_str = now.strftime('%Y-%m-%d') + ' ' + str(self._notify_time) #目前预设是每天9点通知
         notify_date = datetime.datetime.strptime(notify_date_str, "%Y-%m-%d %H:%M:%S")
         # notify_date = now + timedelta(seconds=10)
         if notify_date < now:
