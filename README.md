@@ -27,7 +27,7 @@
 
 ```
 notify_script_name: 'test' //调用脚本名字
-notify_time: 09:10:00 //早上9点10分调用 13:00:00 下午1点调用
+notify_time: "09:10:00" //早上9点10分调用 13:00:00 下午1点调用
 notify_principles: //调用脚本规则
   '14|7|1':  //未来某个日期（下面每个date字段对应）离现在还有 14 天 7天 1天时调用脚本
     - date: "1001" //需要调用脚本的日期
@@ -113,7 +113,7 @@ sensor:
     	- date: '2022-10-10 10:23:10'
     	  name: 'aa和bb结婚两周年'
     notify_script_name: 'test'
-    notify_time: 09:10:00
+    notify_time: "09:10:00"
     notify_principles:
       '14|7|1':
         - date: "0101"
