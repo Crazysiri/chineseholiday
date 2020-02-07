@@ -246,7 +246,10 @@ class ChineseHolidaySensor(Entity):
             for item in dates:
                 days = item['day']
                 fes_list = item['list']
-                messages.append('距离 ' + ','.join(fes_list) + '还有' + str(days) + '天')
+                if days == 0:
+                    messages.append('今天是 ' + ','.join(fes_list))
+                else:
+                    messages.append('距离 ' + ','.join(fes_list) + '还有' + str(days) + '天')
             if messages:
                 t1 = threading.Thread(target=call_service_script,args=(','.join(messages),))
                 t1.start()
