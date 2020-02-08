@@ -212,7 +212,7 @@ class ChineseWord():
         tg = '甲 乙 丙 丁 戊 己 庚 辛 壬 癸'.split()
         dz = '子 丑 寅 卯 辰 巳 午 未 申 酉 戌 亥'.split()
         sx = '鼠 牛 虎 兔 龙 蛇 马 羊 猴 鸡 狗 猪'.split()
-        return tg[(y - 4) % 10] + dz[(y - 4) % 12] + '[' + sx[(y - 4) % 12] + ']' + '年'
+        return tg[(y - 4) % 10] + dz[(y - 4) % 12] +  sx[(y - 4) % 12] + '年'
 
 class Festival():
 
@@ -225,7 +225,7 @@ class Festival():
     #国历节日
     @classmethod
     def solar_Fstv(cls,solar_month, solar_day):
-
+        cls._create_terms()
         return festival_handle(Festival._solar_festival,solar_month,solar_day)
 
     @classmethod
@@ -265,15 +265,20 @@ class Festival():
 
         #如何计算某些最后一个星期几的情况，..........
 
-    #24节气
     @classmethod
-    def solar_Term(cls,solar_month, solar_day):
+    def _create_terms(cls):
+        #计算节气 并且 把清明节放入节日中，获取夏至和冬至
         if not Festival._solar_term:
             terms = jieqi().creat_year_jieqi(datetime.date.today().year)
             for item in terms:
+                if item['name'] == '清明':
+                    Festival._solar_festival[comps[1]+comps[2]] = ['清明节']
                 comps = item['time'].split('-')
                 Festival._solar_term[comps[1]+comps[2]] = [item['name']]
-            # print(Festival._solar_term)
+    #24节气
+    @classmethod
+    def solar_Term(cls,solar_month, solar_day):
+        cls._create_terms()
         return festival_handle(Festival._solar_term,solar_month,solar_day)
 
 
@@ -425,7 +430,7 @@ class CalendarToday:
 
     def lunar_date_description(self):
         #正月初一
-        return ChineseWord.month_lunar(lunar_isLeapMonth,lunar_month) + ChineseWord.day_lunar(lunar_day)
+        return ChineseWord.year_lunar(lunar_year) + ' ' + ChineseWord.month_lunar(lunar_isLeapMonth,lunar_month) + ChineseWord.day_lunar(lunar_day)
 
     def solar(self):
         return solar_year,solar_month,solar_day
@@ -450,7 +455,8 @@ def main():
     print(cal.lunar())
     print(CalendarToday.lunar_to_solar(2020,1,5))
     print(Festival.solar_Term(2,4))
-    
+    print(ChineseWord.year_lunar(2020))
+
 if __name__ == '__main__':
     main()
 
