@@ -132,10 +132,10 @@ sensor:
     notify_principles:
       '14|7|1':
         - date: "0101"
-          solar: False
-        - date: "0102"
+          solar: False #阴历
+        - date: "0102" #没填solar的默认为True 即阳历
       '0': #0即为当天调用
-        #*下面两种是特殊情况采用name，只有父亲节和母亲节
+        #*下面两种是特殊情况采用name，只有父亲节和母亲节 ，也就是填了name就不要填date，填name的只有这两种情况
         - name: "母亲节"
         - name: "父亲节"
 
