@@ -8,6 +8,7 @@ A Chinese Calendar Library in Python
 
 
 import os, io, sys, re, time, datetime, base64
+from datetime import timedelta
 path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(path)
 import  term
@@ -184,7 +185,7 @@ class LunarDate(object):
 
 class ChineseWord():
     def weekday_str(tm):
-        a = '星期日 星期一 星期二 星期三 星期四 星期五 星期六'.split()
+        a = '星期一 星期二 星期三 星期四 星期五 星期六 星期日'.split()
         return a[tm]
 
     def solarTerm(year, month, day):
@@ -368,11 +369,12 @@ class SolarDate():
         global solar_day
         global solar_weekday
 
-        solar_year      = int(time.strftime("%Y", time.localtime()))
-        solar_month     = int(time.strftime("%m", time.localtime()))
-        solar_day       = int(time.strftime("%d", time.localtime()))
-        solar_weekday   = int(time.strftime("%w", time.localtime()))
-
+        t = datetime.datetime.utcnow() + timedelta(hours=8)
+        #time.localtime()
+        solar_year      = t.year
+        solar_month     = t.month
+        solar_day       = t.day
+        solar_weekday   = t.weekday()
         self.year = solar_year
         self.month = solar_month
         self.day = solar_day
@@ -451,7 +453,6 @@ def main():
     print(CalendarToday.lunar_to_solar(2020,1,5))
     print(Festival.solar_Term(2,4))
     print(ChineseWord.year_lunar(2020))
-    
 
 if __name__ == '__main__':
     main()

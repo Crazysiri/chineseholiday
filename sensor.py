@@ -81,7 +81,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
             }
         ]
     },
-    vol.Optional(CONF_UPDATE_INTERVAL, default=timedelta(hours=1)): (vol.All(cv.time_period, cv.positive_timedelta)),
+    vol.Optional(CONF_UPDATE_INTERVAL, default=timedelta(hours=8)): (vol.All(cv.time_period, cv.positive_timedelta)),
 })
 
 
@@ -137,7 +137,7 @@ class ChineseHolidaySensor(Entity):
             'sensor.{}', self.client_name, hass=self._hass)
         self.update = Throttle(interval)(self._update)
         self.setListener() #设置脚本通知的定时器
-
+        self.setUpdateListener() #设置更新时间，凌晨00:00:15秒，15秒就是过了一天随便定定
     @property
     def name(self):
         """Return the name of the sensor."""
@@ -157,6 +157,26 @@ class ChineseHolidaySensor(Entity):
     def device_state_attributes(self):
         """Return the state attributes."""
         return self.attributes
+
+    #更新为两处，一处为Throttle 默认8小时，此处为第二处 是每天凌晨12:01更新
+    def setUpdateListener(self):
+
+        @callback
+        def _listener_callback(_):
+            self.setUpdateListener()
+            self._update()
+
+        self._updateListener = None
+
+        now = datetime.datetime.utcnow() + timedelta(hours=8)
+        notify_date_str = now.strftime('%Y-%m-%d') + ' ' + str('00:00:15') #目前预设是每天9点通知
+        notify_date = datetime.datetime.strptime(notify_date_str, "%Y-%m-%d %H:%M:%S")
+        notify_date = notify_date + timedelta(days=1) #明天的时间
+        # notify_date = now + timedelta(seconds=10)
+
+        self._updateListener = evt.async_track_point_in_time(
+            self._hass, _listener_callback, notify_date
+        )
 
     def setListener(self):
 
