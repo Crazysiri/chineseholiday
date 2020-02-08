@@ -2,7 +2,7 @@
 #coding=utf-8
 """
 中国节假日
-版本：0.1.2
+版本：0.1.3
 """
 from homeassistant.helpers.entity import Entity
 from homeassistant.core import callback
@@ -48,6 +48,7 @@ CONF_NOTIFY_SCRIPT_NAME = 'notify_script_name'
 CONF_NOTIFY_TIME = 'notify_time'
 CONF_NOTIFY_PRINCIPLES = 'notify_principles'
 CONF_NOTIFY_PRINCIPLES_DATE = 'date'
+CONF_NOTIFY_PRINCIPLES_NAME = 'name'
 CONF_NOTIFY_PRINCIPLES_SOLAR = 'solar'
 
 # CALCULATE_AGE_DEFAULTS_SCHEMA = vol.Any(None, vol.Schema({
@@ -74,12 +75,13 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NOTIFY_PRINCIPLES,default={}): {
         str : [
             {
-                vol.Optional(CONF_NOTIFY_PRINCIPLES_DATE): cv.string,
+                vol.Optional(CONF_NOTIFY_PRINCIPLES_NAME,default=''): cv.string,
+                vol.Optional(CONF_NOTIFY_PRINCIPLES_DATE,default=''): cv.string,
                 vol.Optional(CONF_NOTIFY_PRINCIPLES_SOLAR,default=True): cv.boolean,
             }
         ]
     },
-    vol.Optional(CONF_UPDATE_INTERVAL, default=timedelta(seconds=1)): (vol.All(cv.time_period, cv.positive_timedelta)),
+    vol.Optional(CONF_UPDATE_INTERVAL, default=timedelta(hours=1)): (vol.All(cv.time_period, cv.positive_timedelta)),
 })
 
 
@@ -203,36 +205,47 @@ class ChineseHolidaySensor(Entity):
                 for item in value:
                     date = item['date'] #0101 格式的日期字符串
                     solar = item['solar'] #是否是公历
+                    name = item['name'] #名称这个是个特殊逻辑，只有Festival._weekday_festival中记录的才会用，因为这里记录的每年时间不固定
                     fes_date = None
                     fes_list = []
-                    if solar:
-                        date_str = str(self._lunar.solar()[0])+date #20200101
-                        fes_date = datetime.datetime.strptime(date_str,'%Y%m%d').date()
+
+                    #name和date是互斥的，因为name就是为了母亲节父亲节设计的
+                    if name:
                         try:
-                            fes_list = lunar.Festival._solar_festival[date]
+                            fes_list = [name]
+                            date_str = str(self._lunar.solar()[0])+lunar.Festival._weekday_festival_reserse[name] #20200101
+                            fes_date = datetime.datetime.strptime(date_str,'%Y%m%d').date()
                         except Exception as e:
                             pass
-                        try:
-                            fes_list += SOLAR_ANNIVERSARY[date]
-                        except Exception as e:
-                            pass
-                    else:
-                        month = int(date[:2])
-                        day = int(date[2:])
-                        fes_date = lunar.CalendarToday.lunar_to_solar(self._lunar.solar()[0],month,day)#下标和位置
-                        try:
-                            fes_list = lunar.Festival._lunar_festival[date]
-                        except Exception as e:
-                            pass
-                        try:
-                            fes_list += LUNAR_ANNIVERSARY[date]
-                        except Exception as e:
-                            pass
+                    elif date:
+                        if solar:
+                            date_str = str(self._lunar.solar()[0])+date #20200101
+                            fes_date = datetime.datetime.strptime(date_str,'%Y%m%d').date()
+                            try:
+                                fes_list = lunar.Festival._solar_festival[date]
+                            except Exception as e:
+                                pass
+                            try:
+                                fes_list += SOLAR_ANNIVERSARY[date]
+                            except Exception as e:
+                                pass
+                        else:
+                            month = int(date[:2])
+                            day = int(date[2:])
+                            fes_date = lunar.CalendarToday.lunar_to_solar(self._lunar.solar()[0],month,day)#下标和位置
+                            try:
+                                fes_list = lunar.Festival._lunar_festival[date]
+                            except Exception as e:
+                                pass
+                            try:
+                                fes_list += LUNAR_ANNIVERSARY[date]
+                            except Exception as e:
+                                pass
 
                     now_str = datetime.datetime.now().strftime('%Y-%m-%d')
                     today = datetime.datetime.strptime(now_str, "%Y-%m-%d").date()
                     diff = (fes_date - today).days
-                        
+
                     if (str(diff) in days) and fes_list:
                         item['day'] = diff
                         item['list'] = fes_list
@@ -359,6 +372,7 @@ class ChineseHolidaySensor(Entity):
         return nearest_holiday_dict
 
     def _update(self):
+        _LOGGER.info('update')
         self.attributes = {} #重置attributes
         self._lunar = lunar.CalendarToday()#重新赋值
 
