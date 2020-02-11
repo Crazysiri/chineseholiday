@@ -365,14 +365,14 @@ class ChineseHolidaySensor(Entity):
                 day, remainder = divmod(remainder,60*60*24)
                 hour, remainder = divmod(remainder,60*60)
                 minute, second = divmod(remainder,60)
-                self.attributes['离'+name+'过去'] = '{}年 {} 天 {} 小时 {} 分钟 {} 秒'.format(year,day,hour,minute,second)
+                self.attributes['离'+name+'过去'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
             if (now_day - key).total_seconds() < 0:
                 total_seconds = int((key - now_day ).total_seconds())
                 year, remainder = divmod(total_seconds,60*60*24*365)
                 day, remainder = divmod(remainder,60*60*24)
                 hour, remainder = divmod(remainder,60*60)
                 minute, second = divmod(remainder,60)
-                self.attributes['离'+name+'还差']  = '{}年 {} 天 {} 小时 {} 分钟 {} 秒'.format(year,day,hour,minute,second)
+                self.attributes['离'+name+'还差']  = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
 
 
     def nearest_holiday(self):
