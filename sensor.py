@@ -430,6 +430,6 @@ class ChineseHolidaySensor(Entity):
         if nearest:
             self.attributes['nearest_holiday'] = nearest['name']
             self.attributes['nearest_holiday_date'] = nearest['date']
-            self.attributes['nearest_holiday_days'] = nearest['day']
+            self.attributes['nearest_holiday_days'] = int(nearest['day'])
 
         self.calculate_age()

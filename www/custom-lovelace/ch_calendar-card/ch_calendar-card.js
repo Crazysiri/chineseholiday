@@ -147,7 +147,7 @@ class ChineseCalendarCard extends Polymer.Element {
     // attributes['calculate_age_past_date'] = '1900-01-01';
     // attributes['calculate_age_past_interval'] = '20001010101';
     // attributes['calculate_age_past_description'] = '2年2月2日2小时2分2秒';
-    
+
     // attributes['calculate_age_future'] = 'aa和bb纪念日';
     // attributes['calculate_age_future_date'] = '2030-01-01';
     // attributes['calculate_age_future_interval'] = '20001010101';
@@ -174,7 +174,7 @@ class ChineseCalendarCard extends Polymer.Element {
     }
     if (attributes['nearest_anniversary']) {
       var obj = {'name':attributes['nearest_anniversary'],'date':attributes['nearest_anniversary_date'],'days':attributes['nearest_anniversary_days']};
-        if (this.latestReminder && Number(this.latestReminder['days']) > Number(obj['days'])) {
+        if (this.latestReminder && this.latestReminder['days'] > obj['days']) {
           beAdd = this.latestReminder;
           this.latestReminder = obj;          
         }
