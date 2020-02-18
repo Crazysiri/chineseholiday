@@ -135,13 +135,13 @@ class ChineseCalendarCard extends Polymer.Element {
     // attributes['festival'] = '春节';
     // attributes['anniversary'] = 'cc纪念日';
     
-    // attributes['nearest_anniversary'] = 'aa生日';
-    // attributes['nearest_anniversary_date'] = '2020-11-10';
-    // attributes['nearest_anniversary_days'] = '9';
+    attributes['nearest_anniversary'] = 'aa生日';
+    attributes['nearest_anniversary_date'] = '20200627';
+    attributes['nearest_anniversary_days'] = 130;
 
     // attributes['nearest_holiday'] = '端午节';
     // attributes['nearest_holiday_date'] = '2020-11-11';
-    // attributes['nearest_holiday_days'] = '10';
+    // attributes['nearest_holiday_days'] = 10;
     
     // attributes['calculate_age_past'] = 'aa和bb纪念日';
     // attributes['calculate_age_past_date'] = '1900-01-01';
@@ -174,9 +174,15 @@ class ChineseCalendarCard extends Polymer.Element {
     }
     if (attributes['nearest_anniversary']) {
       var obj = {'name':attributes['nearest_anniversary'],'date':attributes['nearest_anniversary_date'],'days':attributes['nearest_anniversary_days']};
-        if (this.latestReminder && this.latestReminder['days'] > obj['days']) {
-          beAdd = this.latestReminder;
-          this.latestReminder = obj;          
+        if (this.latestReminder) {
+          if (this.latestReminder['days'] > obj['days']) {
+            beAdd = this.latestReminder;
+            this.latestReminder = obj;  
+          } else {
+            beAdd = obj;
+          }
+        } else {
+          this.latestReminder = obj;
         }
 
     }
