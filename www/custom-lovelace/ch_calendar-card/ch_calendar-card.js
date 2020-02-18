@@ -135,9 +135,9 @@ class ChineseCalendarCard extends Polymer.Element {
     // attributes['festival'] = '春节';
     // attributes['anniversary'] = 'cc纪念日';
     
-    attributes['nearest_anniversary'] = 'aa生日';
-    attributes['nearest_anniversary_date'] = '20200627';
-    attributes['nearest_anniversary_days'] = 130;
+    // attributes['nearest_anniversary'] = 'aa生日';
+    // attributes['nearest_anniversary_date'] = '20200627';
+    // attributes['nearest_anniversary_days'] = 130;
 
     // attributes['nearest_holiday'] = '端午节';
     // attributes['nearest_holiday_date'] = '2020-11-11';
