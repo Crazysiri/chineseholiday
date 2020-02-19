@@ -365,15 +365,20 @@ class ChineseHolidaySensor(Entity):
                 day, remainder = divmod(remainder,60*60*24)
                 hour, remainder = divmod(remainder,60*60)
                 minute, second = divmod(remainder,60)
-                self.attributes['离'+name+'过去'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
+                self.attributes['calculate_age_past'] = name
+                self.attributes['calculate_age_past_date'] = date
+                self.attributes['calculate_age_past_interval'] = total_seconds
+                self.attributes['calculate_age_past_description'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
             if (now_day - key).total_seconds() < 0:
                 total_seconds = int((key - now_day ).total_seconds())
                 year, remainder = divmod(total_seconds,60*60*24*365)
                 day, remainder = divmod(remainder,60*60*24)
                 hour, remainder = divmod(remainder,60*60)
                 minute, second = divmod(remainder,60)
-                self.attributes['离'+name+'还差']  = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
-
+                self.attributes['calculate_age_future'] = name
+                self.attributes['calculate_age_future_date'] = date
+                self.attributes['calculate_age_future_interval'] = total_seconds
+                self.attributes['calculate_age_future_description'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
 
     def nearest_holiday(self):
         '''查找离今天最近的法定节假日，并显示天数'''
@@ -387,7 +392,7 @@ class ChineseHolidaySensor(Entity):
         if count_dict:
             nearest_holiday_dict['name'] = results[min(count_dict)]
             nearest_holiday_dict['date'] = min(count_dict).isoformat()
-            nearest_holiday_dict['day'] = str((min(count_dict)-now_day).days)+'天'
+            nearest_holiday_dict['day'] = str((min(count_dict)-now_day).days)
 
         return nearest_holiday_dict
 
@@ -397,33 +402,34 @@ class ChineseHolidaySensor(Entity):
         self._lunar = lunar.CalendarToday()#重新赋值
 
         self._state = self._holiday.is_holiday_today()
-        self.attributes['今天'] = self._lunar.solar_date_description()
+        self.attributes['solar'] = self._lunar.solar_date_description()
         # self.attributes['今天'] = datetime.date.today().strftime('%Y{y}%m{m}%d{d}').format(y='年', m='月', d='日')
-        self.attributes['星期'] = self._lunar.week_description()
-        self.attributes['农历'] = self._lunar.lunar_date_description()
+        self.attributes['week'] = self._lunar.week_description()
+        self.attributes['lunar'] = self._lunar.lunar_date_description()
         term = self._lunar.solar_Term()
         if term:
-            self.attributes['节气'] = term
+            self.attributes['term'] = term
         festival = self._lunar.festival_description()
         if festival:
-            self.attributes['节日'] = festival
+            self.attributes['festival'] = festival
 
         custom = self.custom_anniversary()
         if custom:
-            self.attributes['纪念日'] = custom
+            self.attributes['anniversary'] = custom
 
         key,days,annis = self.calculate_anniversary()
         s = ''
         if key and days and annis:
             for anni in annis:
                 s += anni['anniversary']
-
-            self.attributes['离最近的纪念日'] = s + '还有' + str(days) + '天'
+            self.attributes['nearest_anniversary'] = s
+            self.attributes['nearest_anniversary_date'] = key
+            self.attributes['nearest_anniversary_days'] = days
 
         nearest = self.nearest_holiday()
         if nearest:
-            self.attributes['离今天最近的法定节日'] = nearest['name']
-            self.attributes['法定节日日期'] = nearest['date']
-            self.attributes['还有'] = nearest['day']
+            self.attributes['nearest_holiday'] = nearest['name']
+            self.attributes['nearest_holiday_date'] = nearest['date']
+            self.attributes['nearest_holiday_days'] = int(nearest['day'])
 
         self.calculate_age()
