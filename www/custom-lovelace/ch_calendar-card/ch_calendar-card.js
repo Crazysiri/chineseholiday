@@ -214,7 +214,7 @@ class ChineseCalendarCard extends Polymer.Element {
     // attributes['calculate_age_past_date'] = '1900-01-01';
     // attributes['calculate_age_past_interval'] = '20001010101';
     // attributes['calculate_age_past_description'] = '2年2月2日2小时2分2秒';
-    //
+
     // attributes['calculate_age_future'] = 'aa和bb纪念日';
     // attributes['calculate_age_future_date'] = '2030-01-01';
     // attributes['calculate_age_future_interval'] = '20001010101';
@@ -262,7 +262,7 @@ class ChineseCalendarCard extends Polymer.Element {
         list.push({'name':attributes['calculate_age_future'],'date':dateString,'days':attributes['calculate_age_future_description'],'highlight':true});
     }
     if (attributes['calculate_age_past']) {
-        var dateString = attributes['calculate_age_past_date']);
+        var dateString = attributes['calculate_age_past_date'];
         list.push({'name':attributes['calculate_age_past'],'date':dateString,'days':attributes['calculate_age_past_description']});
     }
 
