@@ -366,7 +366,7 @@ class ChineseHolidaySensor(Entity):
                 hour, remainder = divmod(remainder,60*60)
                 minute, second = divmod(remainder,60)
                 self.attributes['calculate_age_past'] = name
-                self.attributes['calculate_age_past_date'] = key
+                self.attributes['calculate_age_past_date'] = date
                 self.attributes['calculate_age_past_interval'] = total_seconds
                 self.attributes['calculate_age_past_description'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
             if (now_day - key).total_seconds() < 0:
@@ -376,7 +376,7 @@ class ChineseHolidaySensor(Entity):
                 hour, remainder = divmod(remainder,60*60)
                 minute, second = divmod(remainder,60)
                 self.attributes['calculate_age_future'] = name
-                self.attributes['calculate_age_future_date'] = key
+                self.attributes['calculate_age_future_date'] = date
                 self.attributes['calculate_age_future_interval'] = total_seconds
                 self.attributes['calculate_age_future_description'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
 
