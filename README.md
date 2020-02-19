@@ -4,6 +4,25 @@
 
 #############################################################################
 
+2020.02.19 更新 加入custom UI
+
+```
+ui-lovelace.yaml
+
+resources:
+  - type: module
+    url: /local/custom-lovelace/ch_calendar-card/ch_calendar-card.js
+
+卡片配置
+  - type: 'custom:ch_calendar-card'
+    entity: sensor.holiday                                        
+    icons: /local/custom-lovelace/ch_calendar-card/icons/
+
+
+```
+
+#############################################################################
+
 2020.02.08 - version:0.1.3
 
 新增功能：
