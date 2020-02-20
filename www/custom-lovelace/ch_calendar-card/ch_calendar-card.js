@@ -7,6 +7,8 @@ class ChineseCalendarCard extends Polymer.Element {
           --main-bg-color: linear-gradient(to bottom,#03a9f4,#68d0ff);
           --main-title-color: white;
           --ch-highlight-color: #03a9f4;
+          --cell-title-color: #515151;
+          --cell-date-color: #aaa;
         }
         .icon_container {
           width: 40px;
@@ -80,9 +82,10 @@ class ChineseCalendarCard extends Polymer.Element {
         }
         .cell_name {
           font-size: 16px;
+          color: var(--cell-title-color);
         }
         .cell_date {
-          color: var(--secondary-text-color);
+          color: var(--cell-date-color);
           font-size: 14px;
         }
         .cell_day_h {
@@ -93,6 +96,7 @@ class ChineseCalendarCard extends Polymer.Element {
         .cell_day_n {
           text-align: right;
           font-size: 16px;
+          color: var(--cell-title-color);          
         }
         .table {
           width: 100%;
@@ -160,7 +164,9 @@ class ChineseCalendarCard extends Polymer.Element {
               </td>
               </template>
             </table>
-            <div style="float:right;width:90%;border-top:1px solid #eee;height:0.5px;"></div>
+            <template is="dom-if" if="[[!item.hiddenLine]]">
+              <div style="float:right;width:90%;border-top:1px solid #f5f5f5;height:0.5px;"></div>
+            </template>
           </template>
         </div>
 
@@ -201,11 +207,11 @@ class ChineseCalendarCard extends Polymer.Element {
     // attributes['term'] = '春分';
     // attributes['festival'] = '春节';
     // attributes['anniversary'] = 'cc纪念日';
-    //
+    
     // attributes['nearest_anniversary'] = 'aa生日';
     // attributes['nearest_anniversary_date'] = '20200627';
     // attributes['nearest_anniversary_days'] = 130;
-    //
+    
     // attributes['nearest_holiday'] = '端午节';
     // attributes['nearest_holiday_date'] = '2020-11-11';
     // attributes['nearest_holiday_days'] = 10;
@@ -265,6 +271,9 @@ class ChineseCalendarCard extends Polymer.Element {
         var dateString = attributes['calculate_age_past_date'];
         list.push({'name':attributes['calculate_age_past'],'date':dateString,'days':attributes['calculate_age_past_description']});
     }
+
+    var last = list[list.length-1];
+    last['hiddenLine'] = true;
 
     this.reminderList = list;
 
