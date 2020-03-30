@@ -24,6 +24,17 @@ class ChineseCalendarCard extends Polymer.Element {
           text-indent: -9999px;
           margin-left: 10px;
         }
+        .icon_state {
+          width: 20px;
+          height: 20px;
+          display: inline-block;
+          vertical-align: middle;
+          background-size: contain;
+          background-position: center center;
+          background-repeat: no-repeat;
+          text-indent: -9999px;
+          margin-left: 10px;
+        }        
         .card {
           padding: 0 18px 18px 18px;
         }
@@ -120,9 +131,16 @@ class ChineseCalendarCard extends Polymer.Element {
           <div class="date_solar">
             [[calendarEntity.attributes.solar]]
           </div>
+
           <div class="date_week">
-            [[calendarEntity.state]],[[calendarEntity.attributes.week]]
+            <p class="icon_state" style="background: none, url([[getStateIcon(calendarEntity.state)]]) no-repeat; background-size: contain;"></p>
+            [[calendarEntity.attributes.week]]
           </div>
+          <!--
+          <div class="date_week">
+            [[calendarEntity.state]]，[[calendarEntity.attributes.week]]
+          </div>
+          -->
           <div class="date_lunar">
             [[calendarEntity.attributes.lunar]]
           </div>
@@ -293,6 +311,23 @@ class ChineseCalendarCard extends Polymer.Element {
     }.png`;
   }
 
+  getStateIcon(state) {
+	var stateIcons = [{state:'工作日', icon:'working'},{state:'休息日', icon:'dating'},{state:'节假日', icon:'vacation'}];
+	var iconName = "";
+	
+	stateIcons.forEach(function(item, index) {
+        if(item.state == state) {
+            iconName = item.icon;
+            return true;
+        }
+    });		
+	
+    return `${
+      this.config.icons
+    }${
+      iconName
+    }.png`;
+  }
 }
 
 
