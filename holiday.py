@@ -177,7 +177,7 @@ class Holiday:
         判断今天是否时节假日
         :return: bool
         """
-        today = datetime.date.today().strftime('%Y-%m-%d')
+        today = datetime.date.today().strftime('%Y%m%d')
         return self.is_holiday(today)
 
     #获取节日数据
