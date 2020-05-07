@@ -144,11 +144,11 @@ class Holiday:
         if rep.status_code != 200:
             return '无法获取节日数据'
         get_day = rep.text
-        if get_day == 0:
+        if get_day == '0':
             result = '工作日'
-        elif get_day == 1:
+        elif get_day == '1':
             result = '休息日'
-        elif get_day == 2:
+        elif get_day =='2':
             result = '节假日'
         else:
             result = '出错了呀！'
@@ -267,7 +267,7 @@ class Holiday:
         return list
 
 def main():
-    print(Holiday().getHoliday())
+    print(Holiday().is_holiday_today())
 
 
 if __name__ == '__main__':
