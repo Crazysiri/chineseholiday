@@ -134,16 +134,25 @@ class Holiday:
 
     def is_holiday(self,day):
         """
-        判断是否节假日, api 来自百度 apistore: [url]http://apistore.baidu.com/apiworks/servicedetail/1116.html[/url]
+        判断是否节假日, api 来自百度 apistore: [url]https://www.kancloud.cn/xiaoggvip/holiday_free/1606802[/url]
         :param day: 日期， 格式为 '20160404'
         :return: bool
+        """
         api = 'http://tool.bitefu.net/jiari/'
-        params = {'d': day, 'apiserviceid': 1116}
+        params = {'d': day}
         rep = requests.get(api, params)
         if rep.status_code != 200:
             return '无法获取节日数据'
-        res = rep.text
-        return "法定节日" if res != "0" else "非法定节日"
+        get_day = rep.text
+        if get_day == 0:
+            result = '工作日'
+        elif get_day == 1:
+            result = '休息日'
+        elif get_day == 2:
+            result = '节假日'
+        else:
+            result = '出错了呀！'
+        return result
         """
         holiday_api = 'http://timor.tech/api/holiday/info/{0}'.format(day)
         rep =requests.get(holiday_api)
@@ -161,6 +170,7 @@ class Holiday:
         else:
             result = '出错了呀！'
         return result
+        """
 
     def is_holiday_today(self):
         """
