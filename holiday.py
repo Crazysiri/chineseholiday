@@ -4,12 +4,15 @@
 
 import requests
 import datetime
+from datetime import datetime,timedelta
 import time
 import json
 
 import sqlite3
 import os
 
+holiday_database_path = os.path.dirname(os.path.realpath(__file__))+'/data.db'
+holiday_status_json_path =  os.path.dirname(os.path.realpath(__file__))+'/holiday.json'#节假日状态json
 class HolidayDatabase:
     conn = None
     cursor = None
@@ -20,7 +23,7 @@ class HolidayDatabase:
 
     def connect(self):
 
-    	self.conn = sqlite3.connect(os.path.dirname(os.path.realpath(__file__))+'/data.db',check_same_thread=False)
+    	self.conn = sqlite3.connect(holiday_database_path,check_same_thread=False)
 
     	self.cursor = self.conn.cursor()
 
@@ -125,6 +128,7 @@ class Holiday:
     session = None
     """docstring for Holiday."""
     def __init__(self):
+        self._holiday_json = None
         self.database = HolidayDatabase()
         session = requests.session()
         requests.adapters.DEFAULT_RETRIES = 5 # 增加重连次数
@@ -132,34 +136,60 @@ class Holiday:
         # session.proxies = {"https": "47.100.104.247:8080", "http": "36.248.10.47:8080", }
         self.session = session
 
-    def is_holiday(self,day):
+        self.get_holidays_from_disk() #从本地获取缓存的 节假日数据
+
+
+    def get_holidays_from_disk(self):
+        try:
+            with open(holiday_status_json_path,'r') as f:
+                self._holiday_json = json.load(f)
+        except Exception as e:
+            print('get_holidays_from_disk error:')
+            print(e)
+
+    def get_holidays_from_server(self):
         """
         判断是否节假日, api 来自百度 apistore: [url]http://apistore.baidu.com/apiworks/servicedetail/1116.html[/url]
         :param day: 日期， 格式为 '20160404'
         :return: bool
-        api = 'http://tool.bitefu.net/jiari/'
-        params = {'d': day, 'apiserviceid': 1116}
-        rep = requests.get(api, params)
-        if rep.status_code != 200:
-            return '无法获取节日数据'
-        res = rep.text
-        return "法定节日" if res != "0" else "非法定节日"
-        """
+
+        另一个api
         holiday_api = 'http://timor.tech/api/holiday/info/{0}'.format(day)
-        rep =requests.get(holiday_api)
-        if rep.status_code != 200:
-            return '无法获取节日数据'
-        holiday_date = rep.json()
-        get_day = holiday_date['type']['type']
+
+        """     
+        today = datetime.utcnow() + timedelta(hours=8)           
+        api = 'http://tool.bitefu.net/jiari/'
+        params = {'d': today.year}
+        rep = requests.get(api, params)
+        if rep.status_code != 200 or str(today.year) not in rep.json(): #请求失败或者没有数据都不能存
+            print('bad request or no data!')
+            return
+        if not os.path.exists(os.path.dirname(holiday_status_json_path)):
+            print('not exists')
+            os.mkdir(os.path.dirname(holiday_status_json_path))
+        json_data = rep.json()
+        with open(holiday_status_json_path,'w') as f:
+            json.dump(json_data,f)                
+        self._holiday_json = json_data
+
+    def is_holiday(self,year,month,day):
+        
+        self.get_holidays_from_server()
+
+        h_dict = self._holiday_json[str(year)]
+        m = "{:0>2d}".format(month)
+        key = '%s%s' % (m,str(day))
+        print(key)
+        status = 0
+        if key in h_dict:
+            status = h_dict[key]
         result = ''
-        if get_day == 0:
+        if status == 0:
             result = '工作日'
-        elif get_day == 1:
+        elif status == 1:
             result = '休息日'
-        elif get_day == 2:
+        elif status == 2:
             result = '节假日'
-        else:
-            result = '出错了呀！'
         return result
 
     def is_holiday_today(self):
@@ -167,8 +197,8 @@ class Holiday:
         判断今天是否时节假日
         :return: bool
         """
-        today = datetime.date.today().strftime('%Y-%m-%d')
-        return self.is_holiday(today)
+        today = datetime.utcnow() + timedelta(hours=8)
+        return self.is_holiday(today.year,today.month,today.day)
 
     #获取节日数据
     def holiday_handle(self,list):
@@ -227,7 +257,7 @@ class Holiday:
         year_str = time.strftime("%Y", time.localtime())
         month_str = time.strftime("%m", time.localtime())
         year      = int(year_str)
-        month     = int(month_str)
+        month     = int(month_str) - 2
         list = []
         for i in range(1,n+1):
             m = month
@@ -257,7 +287,7 @@ class Holiday:
         return list
 
 def main():
-    print(Holiday().getHoliday())
+    print(Holiday().is_holiday_today())
 
 
 if __name__ == '__main__':
