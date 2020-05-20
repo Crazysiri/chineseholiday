@@ -149,10 +149,9 @@ class Holiday:
 
     def get_holidays_from_server(self):
         """
-        判断是否节假日, api 来自百度 apistore: [url]http://apistore.baidu.com/apiworks/servicedetail/1116.html[/url]
+        判断是否节假日, api 来自百度 apistore: [url]https://www.kancloud.cn/xiaoggvip/holiday_free/1606802[/url]
         :param day: 日期， 格式为 '20160404'
         :return: bool
-
         另一个api
         holiday_api = 'http://timor.tech/api/holiday/info/{0}'.format(day)
 

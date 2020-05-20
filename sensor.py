@@ -289,8 +289,14 @@ class ChineseHolidaySensor(Entity):
 
     #计算纪念日（每年都有的）
     def calculate_anniversary(self):
-        def anniversary_handle(list):
-            return ','.join(list)
+        def anniversary_handle(l,age):
+            l_new = []
+            if age != -1: #年龄-1的时候就是没有年份，而且name里得有生日才加这个
+                for name in l:
+                    if '生日' in name:
+                        l_new.append('%s(%s岁)' % (name,age))
+                l = l_new;
+            return ','.join(l)
         """
             {
                 '20200101':[{'anniversary':'0101#xx生日#','solar':True}]
@@ -299,8 +305,16 @@ class ChineseHolidaySensor(Entity):
         anniversaries = {}
 
         for key,value in LUNAR_ANNIVERSARY.items():
-            month = int(key[:2])
-            day = int(key[2:])
+            if len(key) == 8: #带年
+                year = int(key[:4])
+                month = int(key[4:6])
+                day = int(key[6:])
+                age = lunar.CalendarToday.get_age_by_birth(year,month,day,2) #周岁
+            else:              
+                month = int(key[:2])
+                day = int(key[2:])
+                age = -1
+
             solar_date = lunar.CalendarToday.lunar_to_solar(self._lunar.solar()[0],month,day)#下标和位置
             date_str = solar_date.strftime('%Y%m%d')
             try:
@@ -308,16 +322,25 @@ class ChineseHolidaySensor(Entity):
             except Exception as e:
                 anniversaries[date_str] = []
                 list = anniversaries[date_str]
-            list.append({'anniversary':anniversary_handle(value),'solar':False})
+            list.append({'anniversary':anniversary_handle(value,age),'solar':False})
 
         for key,value in SOLAR_ANNIVERSARY.items():
+
+            if len(key) == 8: #带年
+                year = int(key[:4])
+                month = int(key[4:6])
+                day = int(key[6:])
+                key = key[4:] #剩下的
+                age = lunar.CalendarToday.get_age_by_birth(year,month,day,2) #周岁
+            else:
+                age = -1
             date_str = str(self._lunar.solar()[0])+key #20200101
             try:
                 list = anniversaries[date_str]
             except Exception as e:
                 anniversaries[date_str] = []
                 list = anniversaries[date_str]
-            list.append({'anniversary':anniversary_handle(value),'solar':True})
+            list.append({'anniversary':anniversary_handle(value,age),'solar':True})
 
 
     #根据key 排序 因为key就是日期字符串

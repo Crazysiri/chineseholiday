@@ -438,6 +438,25 @@ class CalendarToday:
         return l.toSolarDate()
 
 
+    @classmethod
+    #date '20000101' type: 1 虚岁 2 周岁
+    def get_age_by_birth(cls,year,month,day,t):
+        if t == 1:
+            return solar_year - (year - 1)
+        elif t == 2:
+            if solar_month < month:
+                return solar_year - year - 1
+            elif solar_month == month:
+                if solar_day < day:
+                    return solar_year - year - 1
+                else:
+                    return solar_year - year
+            else:
+                return solar_year - year
+        else:
+            return -1
+
+
 Festival._create_terms()
 Festival._create_weekday_festival()
 
