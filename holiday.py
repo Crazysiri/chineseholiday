@@ -4,7 +4,8 @@
 
 import requests
 import datetime
-from datetime import datetime,timedelta
+from datetime import datetime as datetime_class
+from datetime import timedelta
 import time
 import json
 
@@ -156,7 +157,7 @@ class Holiday:
         holiday_api = 'http://timor.tech/api/holiday/info/{0}'.format(day)
 
         """     
-        today = datetime.utcnow() + timedelta(hours=8)           
+        today = datetime_class.utcnow() + timedelta(hours=8)           
         api = 'http://tool.bitefu.net/jiari/'
         params = {'d': today.year}
         rep = requests.get(api, params)
@@ -196,7 +197,7 @@ class Holiday:
         判断今天是否时节假日
         :return: bool
         """
-        today = datetime.utcnow() + timedelta(hours=8)
+        today = datetime_class.utcnow() + timedelta(hours=8)
         return self.is_holiday(today.year,today.month,today.day)
 
     #获取节日数据
@@ -224,9 +225,9 @@ class Holiday:
             print(e)
 
         # 计算今天和未来一个日期的天数差值
-        now_str = datetime.now().strftime('%Y-%m-%d')
-        today = datetime.strptime(now_str, "%Y-%m-%d")
-        last_update = datetime.strptime(last_date,'%Y-%m-%d')
+        now_str = datetime_class.now().strftime('%Y-%m-%d')
+        today = datetime_class.strptime(now_str, "%Y-%m-%d")
+        last_update = datetime_class.strptime(last_date,'%Y-%m-%d')
         interval = today - last_update
         #从服务器拿数据
         if interval.days > days or days == 0:
