@@ -224,9 +224,9 @@ class Holiday:
             print(e)
 
         # 计算今天和未来一个日期的天数差值
-        now_str = datetime.datetime.now().strftime('%Y-%m-%d')
-        today = datetime.datetime.strptime(now_str, "%Y-%m-%d")
-        last_update = datetime.datetime.strptime(last_date,'%Y-%m-%d')
+        now_str = datetime.now().strftime('%Y-%m-%d')
+        today = datetime.strptime(now_str, "%Y-%m-%d")
+        last_update = datetime.strptime(last_date,'%Y-%m-%d')
         interval = today - last_update
         #从服务器拿数据
         if interval.days > days or days == 0:
