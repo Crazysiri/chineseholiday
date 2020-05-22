@@ -176,17 +176,23 @@ class Holiday:
             print(e)
 
 
-    def is_holiday(self,year,month,day):
+    def is_holiday(self,date):
         
         self.get_holidays_from_server()
 
-        h_dict = self._holiday_json[str(year)]
-        m = "{:0>2d}".format(month)
-        key = '%s%s' % (m,str(day))
+        h_dict = self._holiday_json[str(date.year)]
+        m = "{:0>2d}".format(date.month)
+        key = '%s%s' % (m,str(date.day))
         print(key)
         status = 0
         if key in h_dict:
             status = h_dict[key]
+        else:
+            w = date.weekday()
+            if w > 4:
+                status = 1
+            else:
+                status = 0
         result = ''
         if status == 0:
             result = '工作日'
@@ -202,7 +208,7 @@ class Holiday:
         :return: bool
         """
         today = datetime_class.utcnow() + timedelta(hours=8)
-        return self.is_holiday(today.year,today.month,today.day)
+        return self.is_holiday(today)
 
     #获取节日数据
     def holiday_handle(self,list):
