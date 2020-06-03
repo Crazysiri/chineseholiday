@@ -63,6 +63,7 @@ class ChineseCalendarCard extends Polymer.Element {
           color: var(--main-title-color);
           text-align: right;
           margin-right: 20px;
+          margin-top: -10px;
         }
         .latest_title {
           color: var(--main-title-color);
@@ -79,8 +80,8 @@ class ChineseCalendarCard extends Polymer.Element {
           color: var(--main-title-color);
           font-size: 45px;
           text-align: center;
-          padding-top: 6px;
-          padding-bottom: 12px;
+          padding-top: 20px;
+          padding-bottom: 16px;
         }
         .latest_date {
           color: var(--main-title-color);
@@ -123,26 +124,26 @@ class ChineseCalendarCard extends Polymer.Element {
         }
       </style>
       <ha-card>
-        <div class="container">
+        <div class="container" on-click="_moreInfo">
           <div style="align-items: baseline;">
             <div class="title">[[title]]</div>
           </div>
 
           <div class="date_solar">
-            [[calendarEntity.attributes.solar]]
+            [[attributes.solar]]
           </div>
 
           <div class="date_week">
             <p class="icon_state" style="background: none, url([[getStateIcon(calendarEntity.state)]]) no-repeat; background-size: contain;"></p>
-            [[calendarEntity.attributes.week]]
+            [[attributes.week]]
           </div>
           <!--
           <div class="date_week">
-            [[calendarEntity.state]]，[[calendarEntity.attributes.week]]
+            [[calendarEntity.state]]，[[attributes.week]]
           </div>
           -->
           <div class="date_lunar">
-            [[calendarEntity.attributes.lunar]]
+            [[attributes.lunar]]
           </div>
           <div class="latest_title">距离</div>
           <div class="latest_holiday">[[latestReminder.name]]</div>
@@ -200,6 +201,7 @@ class ChineseCalendarCard extends Polymer.Element {
         type: Object,
         observer: 'dataChanged',
       },
+      attributes: Object,
     };
   }
 
@@ -220,8 +222,8 @@ class ChineseCalendarCard extends Polymer.Element {
     // this.lang = this._hass.selectedLanguage || this._hass.language;
     this.calendarEntity = this.config.entity in hass.states ? hass.states[this.config.entity] : null;
     var list = [];
-    var attributes = this.calendarEntity.attributes;
-
+    var attributes = this.calendarEntity.attributes['data'];
+    this.attributes = attributes;
     // attributes['term'] = '春分';
     // attributes['festival'] = '春节';
     // attributes['anniversary'] = 'cc纪念日';
@@ -327,6 +329,24 @@ class ChineseCalendarCard extends Polymer.Element {
     }${
       iconName
     }.png`;
+  }
+
+  _fire(type, detail, options) {
+    const node = this.shadowRoot;
+    options = options || {};
+    detail = (detail === null || detail === undefined) ? {} : detail;
+    const e = new Event(type, {
+      bubbles: options.bubbles === undefined ? true : options.bubbles,
+      cancelable: Boolean(options.cancelable),
+      composed: options.composed === undefined ? true : options.composed
+    });
+    e.detail = detail;
+    node.dispatchEvent(e);
+    return e;
+  }
+
+  _moreInfo() {
+    this._fire('hass-more-info', { entityId: this.config.entity });
   }
 }
 
