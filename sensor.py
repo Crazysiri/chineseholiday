@@ -295,8 +295,8 @@ class ChineseHolidaySensor(Entity):
                 t1 = threading.Thread(target=call_service_script,args=(','.join(messages),))
                 t1.start()
 
-    #计算纪念日（每年都有的）
-    def calculate_anniversary(self):
+    #计算纪念日（每年都有的） count 返回n条 默认只返回1条
+    def calculate_anniversary(self,count=1):
         def anniversary_handle(l,age):
 
             l_new = []
@@ -329,11 +329,11 @@ class ChineseHolidaySensor(Entity):
             solar_date = lunar.CalendarToday.lunar_to_solar(self._lunar.solar()[0],month,day)#下标和位置
             date_str = solar_date.strftime('%Y%m%d')
             try:
-                list = anniversaries[date_str]
+                l = anniversaries[date_str]
             except Exception as e:
                 anniversaries[date_str] = []
-                list = anniversaries[date_str]
-            list.append({'anniversary':anniversary_handle(value,age),'solar':False})
+                l = anniversaries[date_str]
+            l.append({'anniversary':anniversary_handle(value,age),'solar':False})
 
         for key,value in SOLAR_ANNIVERSARY.items():
 
@@ -342,34 +342,34 @@ class ChineseHolidaySensor(Entity):
                 month = int(key[4:6])
                 day = int(key[6:])
                 key = key[4:] #剩下的
-                age = lunar.CalendarToday.get_age_by_birth(year,month,day,2) #周岁
-                _LOGGER.info('start')
-                _LOGGER.info(age)   
-                _LOGGER.info('end')                   
+                age = lunar.CalendarToday.get_age_by_birth(year,month,day,2) #周岁                 
             else:
                 age = -1
             date_str = str(self._lunar.solar()[0])+key #20200101
             try:
-                list = anniversaries[date_str]
+                l = anniversaries[date_str]
             except Exception as e:
                 anniversaries[date_str] = []
-                list = anniversaries[date_str]
-            list.append({'anniversary':anniversary_handle(value,age),'solar':True})
+                l = anniversaries[date_str]
+            l.append({'anniversary':anniversary_handle(value,age),'solar':True})
 
 
     #根据key 排序 因为key就是日期字符串
-        list=sorted(anniversaries.items(),key=lambda x:x[0])
+        l=sorted(anniversaries.items(),key=lambda x:x[0])
         #找到第一个大于今天的纪念日
-        for item in list:
+        cur = 0
+        results = []
+        for item in l:
             key = item[0]
             annis = item[1] #纪念日数组
             now_str = datetime.datetime.now().strftime('%Y-%m-%d')
             today = datetime.datetime.strptime(now_str, "%Y-%m-%d")
             last_update = datetime.datetime.strptime(key,'%Y%m%d')
             days = (last_update - today).days
-            if days > 0:
-                return key,days,annis
-        return None,None,None
+            if days > 0 and cur < count:
+                cur += 1
+                results.append((key,days,annis))
+        return results
 
     #今天是否是自定义的纪念日（阴历和阳历）
     def custom_anniversary(self):
@@ -465,9 +465,10 @@ class ChineseHolidaySensor(Entity):
             self.attributes['anniversary'] = custom
             self.localizedAttributes['纪念日'] = custom
 
-        key,days,annis = self.calculate_anniversary()
+        results = self.calculate_anniversary()
         s = ''
-        if key and days and annis:
+        if len(results) > 0:
+            key,days,annis = results[0]
             for anni in annis:
                 s += anni['anniversary']
             self.attributes['nearest_anniversary'] = s
