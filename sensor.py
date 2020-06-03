@@ -366,7 +366,7 @@ class ChineseHolidaySensor(Entity):
             today = datetime.datetime.strptime(now_str, "%Y-%m-%d")
             last_update = datetime.datetime.strptime(key,'%Y%m%d')
             days = (last_update - today).days
-            if days > 0 and cur < count:
+            if days > 0 and cur < count: #只有大于今天的才会显示，今天的会在纪念日中显示
                 cur += 1
                 results.append((key,days,annis))
         return results

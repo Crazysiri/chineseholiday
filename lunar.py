@@ -38,11 +38,10 @@ def festival_handle(params,month,day):
     # pattern = "(%s%s)#([\s\S]+?)#"%(month_str,day_str)
     # pattern = '#([\s\S]+?)#'
     md = month_str+day_str
-    try:
-        list = params[md]
-        return ','.join(list)
-    except Exception as e:
-        print('festival_handle' + str(e))
+    for key,value in params.items():
+        if md in key[-4:]:
+            return ','.join(params[key])
+    return None
 
 class LunarDate(object):
     _startDate = datetime.date(1900, 1, 31)
