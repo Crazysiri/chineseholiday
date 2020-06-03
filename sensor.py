@@ -59,6 +59,7 @@ CONF_NOTIFY_PRINCIPLES_SOLAR = 'solar'
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NOTIFY_TIME,default='09:00:00'): cv.time,
     vol.Optional(CONF_NOTIFY_SCRIPT_NAME, default=''): cv.string,
+    vol.Optional('show_detail',default=True): cv.boolean,
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_SOLAR_ANNIVERSARY, default={}): {
         str : [str]
@@ -114,7 +115,8 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     NOTIFY_PRINCIPLES = config[CONF_NOTIFY_PRINCIPLES]
     script_name = config[CONF_NOTIFY_SCRIPT_NAME]
     notify_time = config[CONF_NOTIFY_TIME]
-    sensors = [ChineseHolidaySensor(hass, name,notify_time,script_name, interval)]
+    show_detail = config['show_detail']
+    sensors = [ChineseHolidaySensor(hass, name,notify_time,script_name, interval,show_detail)]
     add_devices(sensors, True)
 
 
@@ -123,9 +125,10 @@ class ChineseHolidaySensor(Entity):
     _holiday = None
     _lunar = None
 
-    def __init__(self, hass, name,notify_time,script_name, interval):
+    def __init__(self, hass, name,notify_time,script_name, interval,show_detail):
         """Initialize the sensor."""
         self.client_name = name
+        self._show_detail = show_detail
         self._state = None
         self._hass = hass
         self._script_name = script_name
@@ -483,6 +486,7 @@ class ChineseHolidaySensor(Entity):
             self.localizedAttributes['最近的节日还有'] = str(nearest['day']) + '天'
         self.calculate_age()
 
-        self.localizedAttributes['data'] = self.attributes
+        if self._show_detail:
+            self.localizedAttributes['data'] = self.attributes
 
    
