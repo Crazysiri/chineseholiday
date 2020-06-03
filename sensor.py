@@ -465,18 +465,32 @@ class ChineseHolidaySensor(Entity):
             self.attributes['anniversary'] = custom
             self.localizedAttributes['纪念日'] = custom
 
-        results = self.calculate_anniversary()
-        s = ''
-        if len(results) > 0:
-            key,days,annis = results[0]
+        #这里传的数字 控制 显示几个 自定义的纪念日
+        results = self.calculate_anniversary(2)
+        #拼接接下来的纪念日
+        for i in range(0,len(results)):
+            key,days,annis = results[i]
+            s = ''
             for anni in annis:
                 s += anni['anniversary']
-            self.attributes['nearest_anniversary'] = s
-            self.localizedAttributes['最近的纪念日'] = s
-            self.attributes['nearest_anniversary_date'] = key
-            self.localizedAttributes['最近的纪念日日期'] = key
-            self.attributes['nearest_anniversary_days'] = days
-            self.localizedAttributes['最近的纪念日还有'] = str(days) + '天'
+            if i == 0:
+                self.attributes['nearest_anniversary'] = s
+                self.localizedAttributes['最近的纪念日'] = s
+                self.attributes['nearest_anniversary_date'] = key
+                self.localizedAttributes['最近的纪念日日期'] = key
+                self.attributes['nearest_anniversary_days'] = days
+                self.localizedAttributes['最近的纪念日还有'] = str(days) + '天'
+            else:
+                
+                if 'next_anniversaries' not in self.attributes:
+                    self.attributes['next_anniversaries'] = []
+                next_anniversaries = self.attributes['next_anniversaries']
+                next_anniversaries.append({'date':key,'name':s,'days':days})
+                if '接下来的纪念日' not in self.localizedAttributes:
+                    self.localizedAttributes['接下来的纪念日'] = []
+                next_anniversaries_local = self.localizedAttributes['接下来的纪念日']
+                next_anniversaries_local.append('距离纪念日 %s-%s 还有 %s 天 ' % (s,key,days))                
+
         nearest = self.nearest_holiday()
         if nearest:
             self.attributes['nearest_holiday'] = nearest['name']
