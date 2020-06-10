@@ -298,6 +298,11 @@ class ChineseCalendarCard extends Polymer.Element {
         list.push({'name':attributes['calculate_age_past'],'date':dateString,'days':attributes['calculate_age_past_description']});
     }
 
+    var info = attributes['holiday_info']
+    if (info) {
+        list.push({'days':info});    
+      }
+
     var last = list[list.length-1];
     last['hiddenLine'] = true;
 
