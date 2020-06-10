@@ -467,6 +467,9 @@ class ChineseHolidaySensor(Entity):
 
         #这里传的数字 控制 显示几个 自定义的纪念日
         results = self.calculate_anniversary(2)
+
+        self.attributes['next_anniversaries'] = []
+        self.localizedAttributes['接下来的纪念日'] = []        
         #拼接接下来的纪念日
         for i in range(0,len(results)):
             key,days,annis = results[i]
@@ -481,13 +484,8 @@ class ChineseHolidaySensor(Entity):
                 self.attributes['nearest_anniversary_days'] = days
                 self.localizedAttributes['最近的纪念日还有'] = str(days) + '天'
             else:
-                
-                if 'next_anniversaries' not in self.attributes:
-                    self.attributes['next_anniversaries'] = []
                 next_anniversaries = self.attributes['next_anniversaries']
                 next_anniversaries.append({'date':key,'name':s,'days':days})
-                if '接下来的纪念日' not in self.localizedAttributes:
-                    self.localizedAttributes['接下来的纪念日'] = []
                 next_anniversaries_local = self.localizedAttributes['接下来的纪念日']
                 next_anniversaries_local.append('距离纪念日 %s-%s 还有 %s 天 ' % (s,key,days))                
 
@@ -500,6 +498,11 @@ class ChineseHolidaySensor(Entity):
             self.attributes['nearest_holiday_days'] = int(nearest['day'])
             self.localizedAttributes['最近的节日还有'] = str(nearest['day']) + '天'
         self.calculate_age()
+
+        info = self._holiday.nearest_holiday_info(12,45)
+        if info:
+            self.attributes['holiday_info'] = info
+            self.localizedAttributes['节假日放假详情'] = info
 
         if self._show_detail:
             self.localizedAttributes['data'] = self.attributes

@@ -22,7 +22,7 @@ CALCULATE_AGE = [
     }
 ]
 
-_lunar = lunar.CalendarToday()
+# _lunar = lunar.CalendarToday()
 
 def calculate_age():
     if not CALCULATE_AGE:
@@ -119,7 +119,68 @@ def calculate_anniversary():
             return key,days,annis
     return None,None,None
 
+import asyncio
+import itertools
+import sys
+import time
+
+
+async def spin():
+    for i in itertools.cycle('|/-\\'):
+        write,flush = sys.stdout.write,sys.stdout.flush
+        write(i)
+        flush()
+        write('\x08'*len(i))
+        try:
+            await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            break
+
+
+async def slow_f():
+    await asyncio.sleep(3)
+    return 3
+
+
+async def sup():
+    spiner = asyncio.Task(spin())
+    print("spiner:",spiner)
+    r = await slow_f()
+    spiner.cancel()
+    return r
+
+def debug(func):
+    def wrapper(*args,**kwargs):          
+        print('[DEBUG]:enter {}()'.format(func.__name__))
+        r = func(*args,**kwargs)
+        print(r)
+        return r + 1
+    return wrapper
+
+@debug
+def say_hello():
+    print('hello!')
+    return 1
+@debug
+def say_goodbye():
+    print('hello!')
+    return 2
+
 def main():
+    print(say_hello())
+    print(say_goodbye())
+    # wrapper = log(test)
+    # wrapper('i m a man')
+    # loop = asyncio.get_event_loop()
+    # r = loop.run_until_complete(sup())
+    # loop.close()
+    # print('r:',r)
+
+
+        
+
+    return
+
     import os
     print(os.path.dirname(os.path.realpath(__file__)))
     print(calculate_anniversary())
