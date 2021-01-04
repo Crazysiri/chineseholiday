@@ -377,10 +377,9 @@ class Holiday:
         year_str = time.strftime("%Y", time.localtime())
         month_str = time.strftime("%m", time.localtime())
         year      = int(year_str)
-        month     = int(month_str) - 1
-        print(month)
+        month     = int(month_str)
         list = []
-        for i in range(1,n+1):
+        for i in range(0,n):
             m = month
             y = year
             if m + i > 12:
@@ -388,6 +387,7 @@ class Holiday:
                 m = m + i - 12
             else:
                 m = month + i
+            # print('y:'+str(y) + ' m:'+str(m))
             results = self.getonline40dholiday('101010100',str(year),"{:0>2d}".format(m))
             sub_list = []
             for r in results:
