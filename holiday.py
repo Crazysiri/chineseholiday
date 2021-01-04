@@ -377,7 +377,7 @@ class Holiday:
         year_str = time.strftime("%Y", time.localtime())
         month_str = time.strftime("%m", time.localtime())
         year      = int(year_str)
-        month     = int(month_str) - 2
+        month     = int(month_str) - 1  #从当月开始计算 -1 即可
         list = []
         for i in range(1,n+1):
             m = month
@@ -387,7 +387,7 @@ class Holiday:
                 m = m + i - 12
             else:
                 m = month + i
-            results = self.getonline40dholiday('101010100',str(year),"{:0>2d}".format(m))
+            results = self.getonline40dholiday('101010100',str(y),"{:0>2d}".format(m))  #年份参数修正
             sub_list = []
             for r in results:
                 #有阴历或阳历节日的
