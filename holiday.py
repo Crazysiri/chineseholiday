@@ -377,7 +377,8 @@ class Holiday:
         year_str = time.strftime("%Y", time.localtime())
         month_str = time.strftime("%m", time.localtime())
         year      = int(year_str)
-        month     = int(month_str) - 2
+        month     = int(month_str) - 1
+        print(month)
         list = []
         for i in range(1,n+1):
             m = month
@@ -399,6 +400,7 @@ class Holiday:
     #year month 需要字符串 '2010' '01'
     def getonline40dholiday(self,citycode,year,month):
         url = "http://d1.weather.com.cn/calendar_new/"+year+"/"+citycode+"_"+year+month+".html";
+        # print(url)
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
          "Referer": "http://www.weather.com.cn/weather40d/"+citycode+".shtml"}
         res = self.session.get(url, headers=headers)
@@ -409,6 +411,7 @@ class Holiday:
 def main():
     # Holiday().nearest_holiday_info(14,45)
     # print(Holiday().is_holiday_today())
+
     pass
 
 if __name__ == '__main__':
