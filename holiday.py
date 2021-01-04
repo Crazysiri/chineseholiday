@@ -11,6 +11,9 @@ import json
 
 import sqlite3
 import os
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 holiday_database_path = os.path.dirname(os.path.realpath(__file__))+'/data.db'
 holiday_status_json_path =  os.path.dirname(os.path.realpath(__file__))+'/holiday.json'#节假日状态json
@@ -380,7 +383,7 @@ class Holiday:
         month     = int(month_str) - 2
         list = []
         for i in range(1,n+1):
-            m = month
+            m = month + 1
             y = year
             if m + i > 12:
                 y += 1
@@ -389,21 +392,27 @@ class Holiday:
                 m = month + i
             results = self.getonline40dholiday('101010100',str(year),"{:0>2d}".format(m))
             sub_list = []
-            for r in results:
-                #有阴历或阳历节日的
-                if r['fe'] != '' or r['yl'] != '':
-                    sub_list.append(r)
-            list.append(sub_list)
+            if results:
+                for r in results:
+                    #有阴历或阳历节日的
+                    if r['fe'] != '' or r['yl'] != '':
+                        sub_list.append(r)
+                list.append(sub_list)
         return list
 
     #year month 需要字符串 '2010' '01'
     def getonline40dholiday(self,citycode,year,month):
+        list = []
         url = "http://d1.weather.com.cn/calendar_new/"+year+"/"+citycode+"_"+year+month+".html";
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
          "Referer": "http://www.weather.com.cn/weather40d/"+citycode+".shtml"}
         res = self.session.get(url, headers=headers)
         json_str = res.content.decode(encoding='utf-8')[11:]
-        list = json.loads(json_str)
+        if json_str.startswith('['):
+            list = json.loads(json_str)
+        else:
+            _LOGGER.error(url)
+            _LOGGER.error(json_str)
         return list
 
 def main():
