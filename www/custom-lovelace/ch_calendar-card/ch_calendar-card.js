@@ -259,6 +259,11 @@ class ChineseCalendarCard extends Polymer.Element {
       list.push({'name':'纪念日','date':'今天','days':attributes['anniversary']});
     }
 
+
+    if (attributes['tomorrow_state']) {
+      list.push({'name':'状态','date':'明天','days':attributes['tomorrow_state']});
+    }
+
     var holiday_days = 0,anniversary_days = 0;
     var beAdd;
     if (attributes['nearest_holiday']) {

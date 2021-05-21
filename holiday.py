@@ -139,9 +139,23 @@ class Holiday:
 
         self.get_holidays_from_disk() #从本地获取缓存的 节假日数据
 
+    """
+    通过该api可以计算某一天，
+    n = 1 就是加一天，即明天
+    n = -1 就是减一天，即昨天
+    依此类推
+    """
+    @classmethod
+    def day(cls,n):
+        return datetime_class.utcnow() + timedelta(hours=8) + timedelta(hours=n * 24)
+
     @classmethod
     def today(cls):
-        return datetime_class.utcnow() + timedelta(hours=8)
+        return Holiday.day(0)
+
+    @classmethod
+    def tomorrow(cls):
+        return Holiday.day(1)
 
     #根据节假日 计算最近一次假日的放假策略
     #参数 在 30 - 45 天之内的显示
@@ -320,6 +334,14 @@ class Holiday:
         today = Holiday.today()
         return self.is_holiday(today)
 
+    def is_holiday_tomorrow(self):
+        """
+        判断明天是否时节假日
+        :return: bool
+        """
+        day = Holiday.tomorrow()
+        return self.is_holiday(day)
+
     #获取节日数据
     def holiday_handle(self,list):
         subkey = {'date': '阳历日期','nlyf': '农历月份','nl': '农历','w1': '天气','jq': '节气', 'hmax': '最高温度', 'hmin': '最低温度', 'hgl': '降水概率', 'fe': '阴历节日', 'yl': '阳历节日', 'wk': '星期', 'time': '发布时间'}
@@ -411,7 +433,7 @@ class Holiday:
 def main():
     # Holiday().nearest_holiday_info(14,45)
     # print(Holiday().is_holiday_today())
-
+    # print(Holiday.day(-1))
     pass
 
 if __name__ == '__main__':

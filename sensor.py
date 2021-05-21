@@ -153,6 +153,10 @@ class ChineseHolidaySensor(Entity):
         return self._state
 
     @property
+    def tomorrow_state(self):
+        return self._tomorrow_state
+
+    @property
     def icon(self):
         """Icon to use in the frontend, if any."""
         return 'mdi:calendar-today'
@@ -444,6 +448,8 @@ class ChineseHolidaySensor(Entity):
         self._lunar = lunar.CalendarToday()#重新赋值
 
         self._state = self._holiday.is_holiday_today()
+        self._tomorrow_state = self._holiday.is_holiday_tomorrow()
+        self.attributes['tomorrow_state'] = self._tomorrow_state
         self.attributes['solar'] = self._lunar.solar_date_description()
         self.localizedAttributes['今天'] = self._lunar.solar_date_description()
         # self.attributes['今天'] = datetime.date.today().strftime('%Y{y}%m{m}%d{d}').format(y='年', m='月', d='日')
