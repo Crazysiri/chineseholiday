@@ -396,6 +396,11 @@ class ChineseHolidaySensor(Entity):
             return
         now_day = datetime.datetime.now()
         count_dict = {}
+        past_calculate_age_count = 0
+        future_calculate_age_count = 0
+        past_dates = [] #记录所有过去的节日
+        future_dates = [] #记录所有将来的节日
+
         for item in CALCULATE_AGE:
             date = item[CONF_CALCULATE_AGE_DATE]
             name = item[CONF_CALCULATE_AGE_NAME]
@@ -406,13 +411,16 @@ class ChineseHolidaySensor(Entity):
                 day, remainder = divmod(remainder,60*60*24)
                 hour, remainder = divmod(remainder,60*60)
                 minute, second = divmod(remainder,60)
-                self.attributes['calculate_age_past'] = name
-                self.localizedAttributes['过去纪念日'] = name
-                self.attributes['calculate_age_past_date'] = date
-                self.localizedAttributes['过去纪念日日期'] = date
-                self.attributes['calculate_age_past_interval'] = total_seconds
-                self.attributes['calculate_age_past_description'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
-                self.localizedAttributes['已经过去'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
+                date_attributes = {}
+                date_attributes['name'] = name
+                self.localizedAttributes[str(past_calculate_age_count + 1) + '.过去纪念日'] = name
+                date_attributes['date'] = date
+                self.localizedAttributes[str(past_calculate_age_count + 1) + '.过去纪念日日期'] = date
+                date_attributes['interval'] = total_seconds
+                date_attributes['description'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
+                self.localizedAttributes[str(past_calculate_age_count + 1) + '.已经过去'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
+                past_dates.append(date_attributes)
+                past_calculate_age_count += 1
 
             if (now_day - key).total_seconds() < 0:
                 total_seconds = int((key - now_day ).total_seconds())
@@ -420,13 +428,21 @@ class ChineseHolidaySensor(Entity):
                 day, remainder = divmod(remainder,60*60*24)
                 hour, remainder = divmod(remainder,60*60)
                 minute, second = divmod(remainder,60)
-                self.attributes['calculate_age_future'] = name
-                self.localizedAttributes['未来纪念日'] = name
-                self.attributes['calculate_age_future_date'] = date
-                self.localizedAttributes['未来纪念日日期'] = date
-                self.attributes['calculate_age_future_interval'] = total_seconds
-                self.attributes['calculate_age_future_description'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
-                self.localizedAttributes['还有'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
+                date_attributes = {}
+                date_attributes['name'] = name
+                self.localizedAttributes[str(future_calculate_age_count + 1) + '.未来纪念日'] = name
+                date_attributes['date'] = date
+                self.localizedAttributes[str(future_calculate_age_count + 1) + '.未来纪念日日期'] = date
+                date_attributes['interval'] = total_seconds
+                date_attributes['description'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
+                self.localizedAttributes[str(future_calculate_age_count + 1) + '.还有'] = '{}年{}天{}小时{}分钟{}秒'.format(year,day,hour,minute,second)
+                future_dates.append(date_attributes)
+                future_calculate_age_count += 1
+
+        self.attributes['past_dates'] = past_dates
+        self.attributes['future_dates'] = future_dates
+
+
     def nearest_holiday(self):
         '''查找离今天最近的法定节假日，并显示天数'''
         now_day = datetime.date.today()

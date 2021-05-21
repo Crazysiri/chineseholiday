@@ -294,13 +294,18 @@ class ChineseCalendarCard extends Polymer.Element {
     if (beAdd) {
       list.push(beAdd);
     }
-    if (attributes['calculate_age_future']) {
-        var dateString = attributes['calculate_age_future_date'];
-        list.push({'name':attributes['calculate_age_future'],'date':dateString,'days':attributes['calculate_age_future_description'],'highlight':true});
+
+    var future_dates = attributes['future_dates'];
+    for (var i = 0; i < future_dates.length;i++) {
+      var dict = future_dates[i];
+      list.push({'name':dict['name'],'date':dict['date'],'days':dict['description'],'highlight':true});
     }
-    if (attributes['calculate_age_past']) {
-        var dateString = attributes['calculate_age_past_date'];
-        list.push({'name':attributes['calculate_age_past'],'date':dateString,'days':attributes['calculate_age_past_description']});
+
+
+    var past_dates = attributes['past_dates'];
+    for (var i = 0; i < past_dates.length;i++) {
+      var dict = past_dates[i];
+      list.push({'name':dict['name'],'date':dict['date'],'days':dict['description']});
     }
 
     var info = attributes['holiday_info']
