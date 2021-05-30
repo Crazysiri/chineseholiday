@@ -1,6 +1,7 @@
 {
   "domain": "chineseholiday",
   "name": "chineseholiday",
+  "version": 1.0,
   "documentation": "https://example.com/",
   "requirements": [],
   "dependencies": [],
