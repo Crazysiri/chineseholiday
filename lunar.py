@@ -137,6 +137,9 @@ class LunarDate(object):
                         res += day - 1
                         return res
                     else:
+                        #这里特殊处理一下，如果是12-30 说明是大年三十，但有些是没有三十的，所以往前推一天
+                        if month == 12 and day == 30:
+                            return _calcDays(yearInfo,12,29,isLeapMonth)
                         raise ValueError("day out of range")
                 res += _days
 
@@ -468,7 +471,7 @@ def main():
     print(cal.lunar_date_description())
     print(cal.solar())
     print(cal.lunar())
-    print(CalendarToday.lunar_to_solar(2020,1,5))
+    print(CalendarToday.lunar_to_solar(2021,12,30))
     print(Festival.solar_Term(2,4))
     print(ChineseWord.year_lunar(2020))
 
