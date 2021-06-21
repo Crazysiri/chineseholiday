@@ -176,7 +176,7 @@ class ChineseHolidaySensor(Entity):
         @callback
         def _listener_callback(_):
             self.setUpdateListener()
-            self._update()
+            self._hass.async_add_executor_job(self._update)
 
         self._updateListener = None
 
