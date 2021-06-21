@@ -295,17 +295,21 @@ class ChineseCalendarCard extends Polymer.Element {
       list.push(beAdd);
     }
 
-    var future_dates = attributes['future_dates'];
-    for (var i = 0; i < future_dates.length;i++) {
-      var dict = future_dates[i];
-      list.push({'name':dict['name'],'date':dict['date'],'days':dict['description'],'highlight':true});
+    if (attributes.hasOwnProperty('future_dates')) {
+      var future_dates = attributes['future_dates'];
+      for (var i = 0; i < future_dates.length;i++) {
+        var dict = future_dates[i];
+        list.push({'name':dict['name'],'date':dict['date'],'days':dict['description'],'highlight':true});
+      }
     }
 
 
-    var past_dates = attributes['past_dates'];
-    for (var i = 0; i < past_dates.length;i++) {
-      var dict = past_dates[i];
-      list.push({'name':dict['name'],'date':dict['date'],'days':dict['description']});
+    if (attributes.hasOwnProperty('past_dates')) {
+      var past_dates = attributes['past_dates'];
+      for (var i = 0; i < past_dates.length;i++) {
+        var dict = past_dates[i];
+        list.push({'name':dict['name'],'date':dict['date'],'days':dict['description']});
+      }      
     }
 
     var info = attributes['holiday_info']
