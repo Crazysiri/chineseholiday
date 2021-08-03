@@ -9,6 +9,10 @@ from datetime import timedelta
 import time
 import json
 
+import logging
+_LOGGER = logging.getLogger(__name__)
+
+
 import sqlite3
 import os
 
@@ -104,7 +108,7 @@ class HolidayDatabase:
     def getData(self,condition='where 1'):
         keys = ['date','json','updateDate']
         sql = "SELECT %s from holiday %s;" % (','.join(keys), condition)
-        print(sql)
+        _LOGGER.debug("HolidayDatabase:"+sql)
         cursor = self.cursor.execute(sql)
         results = []
         for row in cursor:
@@ -129,7 +133,7 @@ class Holiday:
     session = None
     """docstring for Holiday."""
     def __init__(self):
-        self._holiday_json = None
+        self._holiday_json = {}
         self.database = HolidayDatabase()
         session = requests.session()
         requests.adapters.DEFAULT_RETRIES = 5 # 增加重连次数
@@ -216,7 +220,7 @@ class Holiday:
                             if invert:
                                 after += "(串休日，周{})".format(date.weekday()+1) 
                         info = "{}(周{})-{} 放假 共{}天\n据上一次休息{}天 {} \n据下一次休息{}天 {}".format(start.strftime('%m/%d'),start.weekday()+1,end.strftime('%m/%d'),(end-start).days+1,(start-last_weekend).days-1,before,(next_weekend-end).days-1,after)
-                        print(info)
+                        _LOGGER.debug("Holiday:nearest_holiday_info:"+info)
                         return info
         return ''
 
@@ -225,8 +229,7 @@ class Holiday:
             with open(holiday_status_json_path,'r') as f:
                 self._holiday_json = json.load(f)
         except Exception as e:
-            print('get_holidays_from_disk error:')
-            print(e)
+            _LOGGER.debug("Holiday:get_holidays_from_disk:"+str(e))
 
     def get_holidays_from_server(self,days=15):
         """
@@ -238,7 +241,7 @@ class Holiday:
 
         """     
         if not os.path.exists(os.path.dirname(holiday_status_json_path)):
-            print('not exists')
+            _LOGGER.debug("Holiday:get_holidays_from_server:not exists")            
             os.mkdir(os.path.dirname(holiday_status_json_path))
         data = {}
         date = '2020-01-01' #这个是默认时间，数据库读不到 取当天肯定会执行更新逻辑
@@ -247,8 +250,7 @@ class Holiday:
             with open(holiday_status_json_path,'r') as f:
                 data = json.load(f)
         except Exception as e:
-            print('read holiday error!')
-            print(e)
+            _LOGGER.debug("Holiday:get_holidays_from_server:read holiday error!"+str(e))                        
 
         if data and 'update_time' in data:
             date = data['update_time']
@@ -257,40 +259,45 @@ class Holiday:
         today_str = today.strftime('%Y-%m-%d')
         last_update = datetime_class.strptime(date,'%Y-%m-%d')
         interval = today - last_update
+        _LOGGER.debug("Holiday:get_holidays_from_server:" + str(interval.days) + "," + str(days) )                                
         if interval.days > days or days == 0:                     
-            try:
-                data = {}
-                data['update_time'] = today_str
-                for i in range(today.month,today.month + 6):
-                    year = today.year
-                    month = i
-                    #这里只支持1间隔不到1年的
-                    if month > 12:
-                        year = today.year + 1
-                        month = month - 12
-                    if str(year) not in data:
-                        data[str(year)] = {}
-                    year_dict = data[str(year)]                        
+            data = {}
+            data['update_time'] = today_str
+            for i in range(today.month,today.month + 6):
+                year = today.year
+                month = i
+                #这里只支持1间隔不到1年的
+                if month > 12:
+                    year = today.year + 1
+                    month = month - 12
+                if str(year) not in data:
+                    data[str(year)] = {}
+                year_dict = data[str(year)]      
+                try:
                     result = self.get_holidays_from_server_one_month(year,month,year_dict)
-                    time.sleep(1)
+                    time.sleep(1)                    
+                except Exception as e:
+                    _LOGGER.debug("Holiday:get_holidays_from_server:year:" + str(year) + ",month:"+ str(month) + ",dict:" + str(year_dict) +  ",error:"+str(e))                                        
 
-                with open(holiday_status_json_path,'w') as f:
-                    json.dump(data,f)                
-                self._holiday_json = data
-            except Exception as e:
-                print('get error')
-                print(e)
+
+            with open(holiday_status_json_path,'w') as f:
+                json.dump(data,f)  
+
+            self._holiday_json = data
+
         else:
-            print('not need update')
+            _LOGGER.debug("Holiday:get_holidays_from_server:not need update!")                                        
+
 
     def get_holidays_from_server_one_month(self,year,month,year_dict):
         #year_dict 是为了方便进来传值的，否则这里返回了，外面还得遍历一遍
+        # https://blog.bitefu.net/post/31.html
         d = "{}{:0>2d}".format(year,month)
-        api = 'http://tool.bitefu.net/jiari/'
+        api = 'http://tool1.bitefu.net/jiari/'
         params = {'d': d ,'info':1}
         rep = requests.get(api, params)
         if rep.status_code != 200 or d not in rep.json(): #请求失败或者没有数据都不能存
-            print('bad request or no data!')
+            _LOGGER.debug("Holiday:get_holidays_from_server_one_month:ad request or no data!")                                                    
             return
 
         data = {}
@@ -304,8 +311,13 @@ class Holiday:
 
     def is_holiday_status(self,date):
         self.get_holidays_from_server()
+        _LOGGER.debug("Holiday:is_holiday_status:year" + str(date.year))
 
-        h_dict = self._holiday_json[str(date.year)]
+        y_str = str(date.year)
+        h_dict = {}
+        if y_str in self._holiday_json:
+            h_dict = self._holiday_json[y_str]
+
         m = "{:0>2d}".format(date.month)
         d = "{:0>2d}".format(date.day)
         key = '%s%s' % (m,d)
@@ -363,8 +375,7 @@ class Holiday:
         try:
             last_date = self.database.getData('LIMIT 1')[0]['updateDate']
         except Exception as e:
-            print('getHoliday:database get last object')
-            print(e)
+            _LOGGER.debug("Holiday:getHoliday:database get last object!"+str(e))                                                                
 
         # 计算今天和未来一个日期的天数差值
         now_str = datetime_class.now().strftime('%Y-%m-%d')
@@ -382,8 +393,8 @@ class Holiday:
                         self.database.setData(dict['date'],json.dumps(dict),today.strftime('%Y-%m-%d'))
 
             except Exception as e:
-                print('getHoliday:getholidayForNMonths:')
-                print(e)
+                _LOGGER.debug("Holiday:getholidayForNMonths:"+str(e))                                                                
+
 
         #从本地数据库拿数据
         results = self.database.getData()
