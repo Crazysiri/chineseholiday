@@ -45,7 +45,7 @@ CONF_CALCULATE_AGE_DATE = 'date'
 CONF_CALCULATE_AGE_NAME = 'name'
 
 CONF_NOTIFY_SCRIPT_NAME = 'notify_script_name'
-CONF_NOTIFY_TIME = 'notify_time'
+CONF_NOTIFY_TIMES = 'notify_times'
 CONF_NOTIFY_PRINCIPLES = 'notify_principles'
 CONF_NOTIFY_PRINCIPLES_DATE = 'date'
 CONF_NOTIFY_PRINCIPLES_NAME = 'name'
@@ -57,7 +57,7 @@ CONF_NOTIFY_PRINCIPLES_SOLAR = 'solar'
 # }))
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Optional(CONF_NOTIFY_TIME,default='09:00:00'): cv.time,
+    vol.Optional(CONF_NOTIFY_TIMES,default=['09:00:00']): [cv.time],
     vol.Optional(CONF_NOTIFY_SCRIPT_NAME, default=''): cv.string,
     vol.Optional('show_detail',default=True): cv.boolean,
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
@@ -114,9 +114,9 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     CALCULATE_AGE = config[CONF_CALCULATE_AGE]
     NOTIFY_PRINCIPLES = config[CONF_NOTIFY_PRINCIPLES]
     script_name = config[CONF_NOTIFY_SCRIPT_NAME]
-    notify_time = config[CONF_NOTIFY_TIME]
+    notify_times = config[CONF_NOTIFY_TIMES]
     show_detail = config['show_detail']
-    sensors = [ChineseHolidaySensor(hass, name,notify_time,script_name, interval,show_detail)]
+    sensors = [ChineseHolidaySensor(hass, name,notify_times,script_name, interval,show_detail)]
     add_devices(sensors, True)
 
 
@@ -125,14 +125,14 @@ class ChineseHolidaySensor(Entity):
     _holiday = None
     _lunar = None
 
-    def __init__(self, hass, name,notify_time,script_name, interval,show_detail):
+    def __init__(self, hass, name,notify_times,script_name, interval,show_detail):
         """Initialize the sensor."""
         self.client_name = name
         self._show_detail = show_detail
         self._state = None
         self._hass = hass
         self._script_name = script_name
-        self._notify_time = notify_time
+        self._notify_times = notify_times
         self._holiday = holiday.Holiday()
         self._lunar = lunar.CalendarToday()
         self.attributes = {}
@@ -199,17 +199,31 @@ class ChineseHolidaySensor(Entity):
 
         self._listener = None
         # now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        notify_dates = []
         now = datetime.datetime.utcnow() + timedelta(hours=8)
-        notify_date_str = now.strftime('%Y-%m-%d') + ' ' + str(self._notify_time) #目前预设是每天9点通知
-        notify_date = datetime.datetime.strptime(notify_date_str, "%Y-%m-%d %H:%M:%S")
-        # notify_date = now + timedelta(seconds=10)
-        if notify_date < now:
+        #_notify_times 要保证按时间顺序，否则这里的逻辑容易出错
+        for notify_time in self._notify_times:    
+            notify_date_str = now.strftime('%Y-%m-%d') + ' ' + str(notify_time) #目前预设是每天9点通知
+            notify_date = datetime.datetime.strptime(notify_date_str, "%Y-%m-%d %H:%M:%S")
+            notify_dates.append(notify_date)
+
+        notify_d = None
+        for date in notify_dates:
+
+            # notify_date = now + timedelta(seconds=10)
+            if date > now:
+                notify_d = date
+                break
+
+        if not notify_d:
+            #上面发现预设的提醒时间已经没有今天的了，那么拿最小的时间加1天也就是第二天再提醒，所以_notify_times要保证按顺序
+            notify_d = notify_dates[0]
             _LOGGER.info('小于')
-            notify_date = notify_date + timedelta(days=1) #已经过了就设置为明天的时间
-        _LOGGER.info('notify_date')
-        _LOGGER.info(notify_date)
+            notify_d = notify_d + timedelta(days=1) #已经过了就设置为明天的时间
+            _LOGGER.info('notify_date')
+            _LOGGER.info(notify_d)
         self._listener = evt.async_track_point_in_time(
-            self._hass, _date_listener_callback, notify_date
+            self._hass, _date_listener_callback, notify_d
         )
 
 
