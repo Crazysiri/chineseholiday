@@ -436,6 +436,19 @@ class ChineseHolidaySensor(Entity):
                 past_dates.append(date_attributes)
                 past_calculate_age_count += 1
 
+                #变成自动每年自动增加的，就相当于设置一个过去的日期会生成一个未来的日期，并名字变成xx n 周年/周岁
+                counter = 0
+                while (now_day - key).total_seconds() > 0:
+                    date = str(key.year+1) + date[4:] 
+                    key = datetime.datetime.strptime(date,'%Y-%m-%d %H:%M:%S')
+                    counter += 1
+
+                if '生日' in name:
+                    name = name + ' ' + str(counter) + '周岁'
+                else:
+                    name = name + ' ' + str(counter) + '周年'
+
+
             if (now_day - key).total_seconds() < 0:
                 total_seconds = int((key - now_day ).total_seconds())
                 year, remainder = divmod(total_seconds,60*60*24*365)
