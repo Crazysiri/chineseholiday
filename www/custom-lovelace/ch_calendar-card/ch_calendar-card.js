@@ -285,11 +285,14 @@ class ChineseCalendarCard extends Polymer.Element {
 
     }
 
-    var next_anniversaries = attributes['next_anniversaries'];
-    for (var i = 0; i < next_anniversaries.length;i++) {
-      var dict = next_anniversaries[i];
-            list.push({'name':dict['name'],'date':dict['date'],'days':dict['days'],'unit':'天','highlight':true});
+    if (attributes.hasOwnProperty('next_anniversaries')) {
+        var next_anniversaries = attributes['next_anniversaries'];
+        for (var i = 0; i < next_anniversaries.length;i++) {
+          var dict = next_anniversaries[i];
+	      list.push({'name':dict['name'],'date':dict['date'],'days':dict['days'],'unit':'天','highlight':true});
+        }    
     }
+
 
     if (beAdd) {
       list.push(beAdd);
