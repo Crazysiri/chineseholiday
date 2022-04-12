@@ -221,8 +221,14 @@ class ChineseCalendarCard extends Polymer.Element {
     this._hass = hass;
     // this.lang = this._hass.selectedLanguage || this._hass.language;
     this.calendarEntity = this.config.entity in hass.states ? hass.states[this.config.entity] : null;
+    if (!this.calendarEntity) {
+      return;
+    }
     var list = [];
     var attributes = this.calendarEntity.attributes['data'];
+    if (!attributes) {
+      return;
+    }
     this.attributes = attributes;
     // attributes['term'] = '春分';
     // attributes['festival'] = '春节';
