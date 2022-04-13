@@ -166,6 +166,11 @@ class ChineseHolidaySensor(Entity):
     #     return self.attributes
 
     @property
+    def extra_state_attributes(self): 
+        """Return the state attributes. for new version like 2022:4.3"""
+        return self.localizedAttributes
+
+    @property
     def device_state_attributes(self):
         """Return the state attributes."""
         return self.localizedAttributes
@@ -487,6 +492,7 @@ class ChineseHolidaySensor(Entity):
         return nearest_holiday_dict
 
     def _update(self):
+        _LOGGER.info('update ...')
         self.attributes = {} #重置attributes
         self._lunar = lunar.CalendarToday()#重新赋值
 
