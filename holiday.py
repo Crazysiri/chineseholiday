@@ -421,7 +421,7 @@ class Holiday:
             else:
                 m = month + i
             # print('y:'+str(y) + ' m:'+str(m))
-            results = self.getonline40dholiday('101010100',str(year),"{:0>2d}".format(m))
+            results = self.getonline40dholiday('101010100',str(y),"{:0>2d}".format(m))
             sub_list = []
             for r in results:
                 #有阴历或阳历节日的
