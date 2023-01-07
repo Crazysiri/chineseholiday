@@ -437,9 +437,14 @@ class Holiday:
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
          "Referer": "http://www.weather.com.cn/weather40d/"+citycode+".shtml"}
         res = self.session.get(url, headers=headers)
-        json_str = res.content.decode(encoding='utf-8')[11:]
-        list = json.loads(json_str)
-        return list
+        holiday_list = []
+        try:    
+            json_str = res.content.decode(encoding='utf-8')[11:]
+            holiday_list = json.loads(json_str)
+        except Exception as e:
+            _LOGGER.error(f"getonline40dholiday,error:{e}")
+            _LOGGER.error(f"getonline40dholiday,result:{res.text}")
+        return holiday_list
 
 def main():
     # Holiday().nearest_holiday_info(14,45)
