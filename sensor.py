@@ -365,7 +365,7 @@ class ChineseHolidaySensor(Entity):
                 month = int(key[4:6])
                 day = int(key[6:])
                 key = key[4:] #剩下的
-                age = lunar.CalendarToday.get_age_by_birth(year,month,day,2) #周岁                 
+                age = lunar.CalendarToday.get_age_by_birth(year,month,day,2) + 1#周岁                 
             else:
                 age = -1
             date_str = str(self._lunar.solar()[0])+key #20200101
