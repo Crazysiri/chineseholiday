@@ -293,7 +293,7 @@ class Holiday:
         #year_dict 是为了方便进来传值的，否则这里返回了，外面还得遍历一遍
         # https://blog.bitefu.net/post/31.html
         d = "{}{:0>2d}".format(year,month)
-        api = 'http://tool1.bitefu.net/jiari/'
+        api = 'http://tool.bitefu.net/jiari/'
         params = {'d': d ,'info':1}
         rep = requests.get(api, params)
         if rep.status_code != 200 or d not in rep.json(): #请求失败或者没有数据都不能存
