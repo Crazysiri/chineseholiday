@@ -494,6 +494,7 @@ class ChineseHolidaySensor(Entity):
     def _update(self):
         _LOGGER.info('update ...')
         self.attributes = {} #重置attributes
+        self.localizedAttributes = {}
         self._lunar = lunar.CalendarToday()#重新赋值
 
         self._state = self._holiday.is_holiday_today()
