@@ -1,0 +1,7 @@
+{
+    "name": "中国节假日日历",
+    "domains": ["sensor"],
+    "render_readme": true,
+    "homeassistant": "2023.5",
+    "country": ["CN"]
+  }
