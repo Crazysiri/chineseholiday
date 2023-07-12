@@ -212,7 +212,7 @@ test:
 ```
 
 
-
+![示例图](https://github.com/Crazysiri/chineseholiday/blob/master/snapshot.png)
 
 + #### 参考
 参考：
@@ -224,10 +224,6 @@ test:
 + #### 感谢：
 1. WalterDSU提供Readme优化建议 https://github.com/WalterDSU
 
-
-
-
-![示例图](https://github.com/Crazysiri/chineseholiday/blob/master/snapshot.png)
 
 
 去掉的功能：
