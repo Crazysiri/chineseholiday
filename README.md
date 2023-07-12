@@ -221,6 +221,10 @@ test:
 
 个人感觉有些地方不太适合我的场景的，所以重构了部分代码，增加了一些功能，去掉了一些功能。
 
++ #### 感谢：
+1. WalterDSU提供Readme优化建议 https://github.com/WalterDSU
+
+
 
 
 ![示例图](https://github.com/Crazysiri/chineseholiday/blob/master/snapshot.png)
