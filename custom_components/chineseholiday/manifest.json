@@ -1,11 +1,11 @@
 {
   "domain": "chineseholiday",
   "name": "chineseholiday",
-  "version": 1.0,
-  "documentation": "https://example.com/",
+  "version": 0.2.0,
+  "documentation": "https://github.com/Crazysiri/chineseholiday",
   "requirements": [],
   "dependencies": [],
   "codeowners": [
-    "@seven"
+    "@Crazysiri"
   ]
 }
