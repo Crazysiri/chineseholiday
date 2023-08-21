@@ -440,24 +440,29 @@ class CalendarToday:
         return l.toSolarDate()
 
 
+    #date '20000101' 周岁 阳历
     @classmethod
-    #date '20000101' type: 1 虚岁 2 周岁
-    def get_age_by_birth(cls,year,month,day,t):
-        if t == 1:
-            return solar_year - (year - 1)
-        elif t == 2:
-            if solar_month < month:
+    def get_age_by_birth_solar(cls,year,month,day):
+        if solar_month < month: #8 9
+            return solar_year - year - 1
+        elif solar_month == month:
+            if solar_day < day:
                 return solar_year - year - 1
-            elif solar_month == month:
-                if solar_day < day:
-                    return solar_year - year - 1
-                else:
-                    return solar_year - year
             else:
                 return solar_year - year
-        else:
-            return -1
+        else: # 8 7
+            return solar_year - year
 
+    # 传进来的是阴历，要转换成周岁
+    @classmethod
+    def get_age_by_birth_lunar_to_solar(cls,year,month,day):
+        res = CalendarToday.lunar_to_solar(year,month,day)
+        return cls.get_age_by_birth_solar(res.year, res.month, res.day)
+
+    #date '20000101' 虚岁 阴历
+    @classmethod
+    def get_age_by_birth_lunar(cls,year,month,day):
+        return year - lunar_year + 1
 
 Festival._create_terms()
 Festival._create_weekday_festival()
@@ -474,6 +479,11 @@ def main():
     print(CalendarToday.lunar_to_solar(2021,12,30))
     print(Festival.solar_Term(2,4))
     print(ChineseWord.year_lunar(2020))
+    print(CalendarToday.get_age_by_birth_solar(2022, 9, 20))
+    print(CalendarToday.get_age_by_birth_solar(2022, 8, 21))
+    print(CalendarToday.get_age_by_birth_solar(2022, 8, 20))
+    print(CalendarToday.get_age_by_birth_solar(2022, 7, 20))
+    print(CalendarToday.get_age_by_birth_lunar_to_solar(1988,6, 18))
 
 if __name__ == '__main__':
     main()
