@@ -343,13 +343,13 @@ class ChineseHolidaySensor(Entity):
                 year = int(key[:4])
                 month = int(key[4:6])
                 day = int(key[6:])
-                age = lunar.CalendarToday.get_age_by_birth_lunar(year,month,day) #虚岁          
+                age = lunar.CalendarToday.get_age_by_birth_lunar_to_solar(year,month,day) + 1 #周岁         
             else:              
                 month = int(key[:2])
                 day = int(key[2:])
                 age = -1
 
-            solar_date = lunar.CalendarToday.get_age_by_birth_lunar_to_solar(self._lunar.solar()[0],month,day)#下标和位置
+            solar_date = lunar.CalendarToday.lunar_to_solar(self._lunar.solar()[0],month,day)#下标和位置
             date_str = solar_date.strftime('%Y%m%d')
             try:
                 l = anniversaries[date_str]
@@ -365,7 +365,7 @@ class ChineseHolidaySensor(Entity):
                 month = int(key[4:6])
                 day = int(key[6:])
                 key = key[4:] #剩下的
-                age = lunar.CalendarToday.get_age_by_birth_solar(year,month,day)#周岁                 
+                age = lunar.CalendarToday.get_age_by_birth_solar(year,month,day) + 1#周岁                 
             else:
                 age = -1
             date_str = str(self._lunar.solar()[0])+key #20200101

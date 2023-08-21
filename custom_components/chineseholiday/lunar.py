@@ -462,7 +462,7 @@ class CalendarToday:
     #date '20000101' 虚岁 阴历
     @classmethod
     def get_age_by_birth_lunar(cls,year,month,day):
-        return year - lunar_year + 1
+        return lunar_year - year + 1
 
 Festival._create_terms()
 Festival._create_weekday_festival()
@@ -476,14 +476,14 @@ def main():
     print(cal.lunar_date_description())
     print(cal.solar())
     print(cal.lunar())
-    print(CalendarToday.lunar_to_solar(2021,12,30))
+    print(CalendarToday.lunar_to_solar(1988,7, 11))
     print(Festival.solar_Term(2,4))
     print(ChineseWord.year_lunar(2020))
-    print(CalendarToday.get_age_by_birth_solar(2022, 9, 20))
-    print(CalendarToday.get_age_by_birth_solar(2022, 8, 21))
+    print(CalendarToday.get_age_by_birth_solar(1988, 8, 22))
+    print(CalendarToday.get_age_by_birth_lunar_to_solar(1988, 7, 11))
     print(CalendarToday.get_age_by_birth_solar(2022, 8, 20))
     print(CalendarToday.get_age_by_birth_solar(2022, 7, 20))
-    print(CalendarToday.get_age_by_birth_lunar_to_solar(1988,6, 18))
+    print(CalendarToday.get_age_by_birth_lunar_to_solar(1988,7, 11))
 
 if __name__ == '__main__':
     main()
