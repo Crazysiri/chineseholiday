@@ -349,8 +349,10 @@ class ChineseHolidaySensor(Entity):
                 day = int(key[2:])
                 age = -1
 
-            solar_date = lunar.CalendarToday.lunar_to_solar(self._lunar.solar()[0],month,day)#下标和位置
+            solar_date = lunar.CalendarToday.lunar_to_solar(self._lunar.lunar()[0],month,day)#下标和位置
+            
             date_str = solar_date.strftime('%Y%m%d')
+            self._lunar = lunar.CalendarToday()
             try:
                 l = anniversaries[date_str]
             except Exception as e:
@@ -522,7 +524,7 @@ class ChineseHolidaySensor(Entity):
             self.localizedAttributes['纪念日'] = custom
 
         #这里传的数字 控制 显示几个 自定义的纪念日
-        results = self.calculate_anniversary(3)
+        results = self.calculate_anniversary(5)
         _LOGGER.info(f'anniversaries: ${results}')
 
         self.attributes['next_anniversaries'] = []
