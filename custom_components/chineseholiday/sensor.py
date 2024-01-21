@@ -349,8 +349,15 @@ class ChineseHolidaySensor(Entity):
                 day = int(key[2:])
                 age = -1
 
-            solar_date = lunar.CalendarToday.lunar_to_solar(self._lunar.lunar()[0],month,day)#下标和位置
-            
+            y = self._lunar.lunar()[0]
+            if month < self._lunar.lunar()[1]:
+                y += 1
+            elif month == self._lunar.lunar()[1]:
+                if day < self._lunar.lunar()[2]:
+                    y += 1
+
+            solar_date = lunar.CalendarToday.lunar_to_solar(y,month,day)#下标和位置
+
             date_str = solar_date.strftime('%Y%m%d')
             self._lunar = lunar.CalendarToday()
             try:

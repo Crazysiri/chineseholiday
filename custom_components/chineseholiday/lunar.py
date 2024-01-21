@@ -457,7 +457,11 @@ class CalendarToday:
     @classmethod
     def get_age_by_birth_lunar_to_solar(cls,year,month,day):
         res = CalendarToday.lunar_to_solar(year,month,day)
-        return cls.get_age_by_birth_solar(res.year, res.month, res.day)
+        y = res.year
+        m = res.month
+        d = res.day
+        CalendarToday()
+        return cls.get_age_by_birth_solar(y, m, d)
 
     #date '20000101' 虚岁 阴历
     @classmethod
@@ -476,7 +480,9 @@ def main():
     print(cal.lunar_date_description())
     print(cal.solar())
     print(cal.lunar())
-    print(CalendarToday.lunar_to_solar(1988,7, 11))
+    ltos = CalendarToday.lunar_to_solar(2024,12, 25)
+    date_str = ltos.strftime('%Y%m%d')
+    print('l to s:', date_str)
     print(Festival.solar_Term(2,4))
     print(ChineseWord.year_lunar(2020))
     print(CalendarToday.get_age_by_birth_solar(1988, 8, 22))
