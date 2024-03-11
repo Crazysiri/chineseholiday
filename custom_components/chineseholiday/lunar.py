@@ -189,6 +189,15 @@ class ChineseWord():
     def weekday_str(tm):
         a = '星期一 星期二 星期三 星期四 星期五 星期六 星期日'.split()
         return a[tm]
+    def week_num_str(num):
+        a = '零 一 二 三 四 五 六 七 八 九 十 十一 十二 十三 十四 十五\
+            十六 十七 十八 十九 二十 二十一 二十二 二十三 二十四\
+            二十五 二十六 二十七 二十八 二十九 三十 三十一 三十二\
+            三十三 三十四 三十五 三十六 三十七 三十八 三十九 四十\
+            四十一 四十二 四十三 四十四 四十五 四十六 四十七 四十八\
+            四十九 五十 五十一 五十二 五十三 五十四 五十五 五十六\
+            五十七 五十八 五十九 六十 六十一 六十二'.split()
+        return a[num]
 
     def solarTerm(year, month, day):
         a = '小寒 大寒 立春 雨水 惊蛰 春分\
@@ -416,9 +425,12 @@ class CalendarToday:
         #今日节气
         return Festival.solar_Term(solar_month,solar_day)
 
-    def solar_date_description(self):
+    def solar_date_description(self):#阳历时间
         #2000年01月01日
         return str(solar_year) + "年" + str(solar_month) + "月" + str(solar_day) + "日"
+    def solar_week_number(self):#周数  ChineseWord.week_num_str
+        return "第"+ChineseWord.week_num_str(datetime.datetime(int(solar_year), int(solar_month), int(solar_day)).isocalendar()[1]) + "周"
+        #return "第"+str(datetime.datetime(int(solar_year), int(solar_month), int(solar_day)).isocalendar()[1]) + "周"
 
     def week_description(self):
         #星期几

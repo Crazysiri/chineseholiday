@@ -516,6 +516,8 @@ class ChineseHolidaySensor(Entity):
         self.localizedAttributes['星期'] = self._lunar.week_description()
         self.attributes['lunar'] = self._lunar.lunar_date_description()
         self.localizedAttributes['农历'] = self._lunar.lunar_date_description()
+        self.attributes['week_number']   = self._lunar.solar_week_number()
+        self.localizedAttributes['周数'] = self._lunar.solar_week_number()
         term = self._lunar.solar_Term()
         if term:
             self.attributes['term'] = term
