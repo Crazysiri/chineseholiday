@@ -1,0 +1,27 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Chinese Holiday Calendar",
+        "description": "Add Chinese Holiday sensor with legal holidays, lunar calendar, solar terms, anniversaries and more.",
+        "data": {
+          "name": "Sensor name"
+        }
+      }
+    },
+    "error": {},
+    "abort": {
+      "already_configured": "This sensor is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "show_detail": "Show detailed data attributes"
+        }
+      }
+    }
+  }
+}

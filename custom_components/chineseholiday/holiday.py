@@ -1,459 +1,403 @@
 #!/usr/local/bin/python3
 # coding=utf-8
-#holiday 模块：1.从服务端获取数据并、2.存入数据库 3.从数据库读数库
+"""
+节假日模块：从 API 获取并缓存节假日状态
+数据源：http://tool.bitefu.net/jiari/ (主) / 本地 JSON 缓存 (备)
+"""
+from __future__ import annotations
 
-import requests
 import datetime
 from datetime import datetime as datetime_class
 from datetime import timedelta
-import time
 import json
-
 import logging
+import os
+import time
+
+import requests
+
+from . import lunar
+
 _LOGGER = logging.getLogger(__name__)
 
+holiday_database_path = os.path.dirname(os.path.realpath(__file__)) + "/data.db"
+holiday_status_json_path = (
+    os.path.dirname(os.path.realpath(__file__)) + "/holiday.json"
+)
 
-import sqlite3
-import os
-
-holiday_database_path = os.path.dirname(os.path.realpath(__file__))+'/data.db'
-holiday_status_json_path =  os.path.dirname(os.path.realpath(__file__))+'/holiday.json'#节假日状态json
-class HolidayDatabase:
-    conn = None
-    cursor = None
-
-    def __init__(self):
-    	self.connect()
-    	self.create_table('holiday',[{'key':'date','type':'varchar not null UNIQUE'},{'key':'json','type':'text'},{'key':'updateDate','type':'varchar not null'}])
-
-    def connect(self):
-
-    	self.conn = sqlite3.connect(holiday_database_path,check_same_thread=False)
-
-    	self.cursor = self.conn.cursor()
-
-    	pass
-
-    """
-    name:表名
-    keys：json [{'key','type'},{'key':'type'}]
-
-    默认创建ID字段 主键
-    """
-    def create_table(self,name,keys):
-    	try:
-    		insert_keys = ''
-    		for key in keys:
-    			insert_keys += ',' + key['key'] + ' ' + key['type']
-    		self.cursor.execute('CREATE TABLE %s (id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE %s);' % (name,insert_keys))
-
-    		self.conn.commit()
-    		# self.conn.close()
-
-    		return True
-    	except Exception as e:
-    		return False
-
-    """
-    name: 表名
-    keys：需要插入的key 数组
-    values：需要插入的value 数组
-    """
-    def insert_values(self,name,keys,values):
-    	try:
-            flags = []
-            for i in range(0,len(keys)):
-                flags.append('?')
-            keys = ','.join(keys)
-            flags = ','.join(flags)
-            sql = "INSERT INTO %s (%s) VALUES (%s)" % (name,keys,flags)
-            self.cursor.execute(sql,tuple(values))
-            self.conn.commit()
-            return True
-    	except Exception as e:
-            return False
-
-    """
-    keys 和 values的 大小需要一样
-    name:表名
-    keys：需要更新的key 数组
-    values：需要更新的value 数组
-    condtion：条件（id = 1）
-    """
-    def update_values(self,name,keys,values,condition):
-    	try:
-    		set_value_array = []
-    		for i in range(len(keys)):
-    			key = keys[i]
-    			value = values[i]
-    			if not value:
-    				value = "''"
-    			set_value_array.append("%s = ?" % key)
-
-    		sql = "update %s set %s where %s;" % (name,','.join(set_value_array),condition)
-    		self.cursor.execute(sql,tuple(values))
-    		self.conn.commit()
-    		return True
-    	except Exception as e:
-    		return False
-
-#以下两个方法为数据库的应用方法 一个是更新数据 一个是获取数据
-
-    #json 是字符串的json数据
-    def setData(self,dateString,json,updateDate):
-        status = self.insert_values('holiday',['date','json','updateDate'],[dateString,json,updateDate])
-        if not status:
-            self.update_values('holiday',['date','json','updateDate'],[dateString,json,updateDate],'date = %s' % dateString)
-
-    def getData(self,condition='where 1'):
-        keys = ['date','json','updateDate']
-        sql = "SELECT %s from holiday %s;" % (','.join(keys), condition)
-        _LOGGER.debug("HolidayDatabase:"+sql)
-        cursor = self.cursor.execute(sql)
-        results = []
-        for row in cursor:
-        	result = {}
-        	for i in range(len(keys)):
-        		result[keys[i]] = row[i]
-        	results.append(result)
-
-        return results
+# ---------------------------------------------------------------------------
+# 轻量 SQLite 数据库（供 getHoliday 旧接口兼容使用）
+# ---------------------------------------------------------------------------
 
 class Holiday:
+    """节假日查询与缓存。
+
+    主数据源：http://tool.bitefu.net/jiari/
+      - 返回格式 {"YYYYMM": {"MMDD": {"type": "0/1/2", "week2": "1-7", ...}}}
+      - type 0=工作日 1=休息日 2=法定节假日
+    本地缓存：holiday.json（同目录）
     """
-     public methods
 
-     is_holiday 是否是节日
-     is_holiday_today 今天是否是节假日
-     getHoliday 获取节假日
+    _BITEFU_API = "http://tool.bitefu.net/jiari/"
+    _REQUEST_TIMEOUT = 10
+    _CACHE_TTL_DAYS = 15  # 超过 N 天重新从服务器拉取
 
-     """
-
-    database = None
-    session = None
-    """docstring for Holiday."""
     def __init__(self):
-        self._holiday_json = {}
-        self.database = HolidayDatabase()
-        session = requests.session()
-        requests.adapters.DEFAULT_RETRIES = 5 # 增加重连次数
-        session.keep_alive = False
-        # session.proxies = {"https": "47.100.104.247:8080", "http": "36.248.10.47:8080", }
-        self.session = session
+        # __init__ 完全不做 I/O，所有磁盘/网络操作延迟到 _update() 线程中执行
+        # 原因：async_setup_entry 在事件循环主线程运行，阻塞 I/O 会被 HA 2024+ 检测并报错
+        self._holiday_json: dict = {}
+        self._session: requests.Session | None = None
 
-        self.get_holidays_from_disk() #从本地获取缓存的 节假日数据
+    def _ensure_session(self) -> requests.Session:
+        if self._session is None:
+            s = requests.Session()
+            s.keep_alive = False
+            requests.adapters.DEFAULT_RETRIES = 3
+            self._session = s
+        return self._session
 
-    """
-    通过该api可以计算某一天，
-    n = 1 就是加一天，即明天
-    n = -1 就是减一天，即昨天
-    依此类推
-    """
+    # ------------------------------------------------------------------
+    # 工具方法
+    # ------------------------------------------------------------------
+
     @classmethod
-    def day(cls,n):
+    def day(cls, n: int) -> datetime_class:
+        """返回 UTC+8 当天 + n 天的 datetime。"""
         return datetime_class.utcnow() + timedelta(hours=8) + timedelta(hours=n * 24)
 
     @classmethod
-    def today(cls):
-        return Holiday.day(0)
+    def today(cls) -> datetime_class:
+        return cls.day(0)
 
     @classmethod
-    def tomorrow(cls):
-        return Holiday.day(1)
+    def tomorrow(cls) -> datetime_class:
+        return cls.day(1)
 
-    #根据节假日 计算最近一次假日的放假策略
-    #参数 在 30 - 45 天之内的显示
-    def nearest_holiday_info(self,min_days=30,max_days=45):
-        today = Holiday.today()
-        for y in self._holiday_json:
-            if y == 'update_time':
-                continue
-            dates = self._holiday_json[y] # {"0101":1,"0102":2}
-            for m in dates:
-                t = dates[m]
-                if t == 2: #找到假日
-                    d = '{}-{}-{}'.format(y,m[0:2],m[2:])
-                    date = datetime_class.strptime(d,'%Y-%m-%d')
-                    start = date
-                    end = date
-                    before_start_workdays = [] #串休日
-                    after_end_workdays = [] #串休日
-
-                    #在距离 节日 30 - 40天 之间的显示 找到最近的一个 直接return
-                    if (date - today).days >= min_days and (date - today).days <= max_days:
-                        #找到前后连续的节假日
-                        while self.is_holiday_status(start) != 0:
-                            start = start - timedelta(days=1)
-                        while self.is_holiday_status(end) != 0:
-                            end = end + timedelta(days=1)
-                        #因为这里会多计算一次 所以得到的是前一天和后一天
-                        last_weekend = start
-                        next_weekend = end
-                        while self.is_holiday_status(last_weekend) == 0:
-                            invert = False
-                            if last_weekend.weekday() == 5 or last_weekend.weekday() == 6:
-                                invert = True
-                            before_start_workdays.append({'date':last_weekend,'invert':invert})
-                            last_weekend = last_weekend - timedelta(days=1)
-                        while self.is_holiday_status(next_weekend) == 0:
-                            invert = False
-                            if next_weekend.weekday() == 5 or next_weekend.weekday() == 6:
-                                invert = True
-                            after_end_workdays.append({'date':next_weekend,'invert':invert})
-                            next_weekend = next_weekend + timedelta(days=1)
-                            
-                        start = start + timedelta(days=1)
-                        end = end - timedelta(days=1)  
-                        before = ""
-                        after = "" 
-                        before_start_workdays.reverse()
-                        for item in before_start_workdays:
-                            date = item['date']
-                            invert = item['invert']
-                            before += " {}/{}".format(date.month,date.day)
-                            if invert:
-                                before += "(串休日，周{})".format(date.weekday()+1) 
-                        for item in after_end_workdays:
-                            date = item['date']
-                            invert = item['invert']
-                            after += " {}/{}".format(date.month,date.day)
-                            if invert:
-                                after += "(串休日，周{})".format(date.weekday()+1) 
-                        info = "{}(周{})-{} 放假 共{}天\n据上一次休息{}天 {} \n据下一次休息{}天 {}".format(start.strftime('%m/%d'),start.weekday()+1,end.strftime('%m/%d'),(end-start).days+1,(start-last_weekend).days-1,before,(next_weekend-end).days-1,after)
-                        _LOGGER.debug("Holiday:nearest_holiday_info:"+info)
-                        return info
-        return ''
+    # ------------------------------------------------------------------
+    # 磁盘缓存读写
+    # ------------------------------------------------------------------
 
     def get_holidays_from_disk(self):
         try:
-            with open(holiday_status_json_path,'r') as f:
+            with open(holiday_status_json_path, "r") as f:
                 self._holiday_json = json.load(f)
         except Exception as e:
-            _LOGGER.debug("Holiday:get_holidays_from_disk:"+str(e))
+            _LOGGER.debug("get_holidays_from_disk: %s", e)
 
-    def get_holidays_from_server(self,days=15):
-        """
-        判断是否节假日, api 来自百度 apistore: [url]https://www.kancloud.cn/xiaoggvip/holiday_free/1606802[/url]
-        :param day: 日期， 格式为 '20160404'
-        :return: bool
-        另一个api
-        holiday_api = 'http://timor.tech/api/holiday/info/{0}'.format(day)
-
-        """     
-        if not os.path.exists(os.path.dirname(holiday_status_json_path)):
-            _LOGGER.debug("Holiday:get_holidays_from_server:not exists")            
-            os.mkdir(os.path.dirname(holiday_status_json_path))
-        data = {}
-        date = '2020-01-01' #这个是默认时间，数据库读不到 取当天肯定会执行更新逻辑
-        #从服务器拿数据
+    def _write_cache(self, data: dict):
         try:
-            with open(holiday_status_json_path,'r') as f:
-                data = json.load(f)
+            with open(holiday_status_json_path, "w") as f:
+                json.dump(data, f, ensure_ascii=False)
         except Exception as e:
-            _LOGGER.debug("Holiday:get_holidays_from_server:read holiday error!"+str(e))                        
+            _LOGGER.error("写入节假日缓存失败: %s", e)
 
-        if data and 'update_time' in data:
-            date = data['update_time']
-        # 计算今天和未来一个日期的天数差值
-        today = Holiday.today() 
-        today_str = today.strftime('%Y-%m-%d')
-        last_update = datetime_class.strptime(date,'%Y-%m-%d')
+    # ------------------------------------------------------------------
+    # 服务器拉取（bitefu.net）
+    # ------------------------------------------------------------------
+
+    def get_holidays_from_server(self, days: int = 15):
+        """从 bitefu.net 更新节假日状态缓存（未来 6 个月）。"""
+        data: dict = {}
+        update_date = "2000-01-01"
+
+        try:
+            with open(holiday_status_json_path, "r") as f:
+                data = json.load(f)
+        except Exception:
+            pass
+
+        if data and "update_time" in data:
+            update_date = data["update_time"]
+
+        today = self.today()
+        today_str = today.strftime("%Y-%m-%d")
+        last_update = datetime_class.strptime(update_date, "%Y-%m-%d")
         interval = today - last_update
-        _LOGGER.debug("Holiday:get_holidays_from_server:" + str(interval.days) + "," + str(days) )                                
-        if interval.days > days or days == 0:                     
-            data = {}
-            data['update_time'] = today_str
-            for i in range(today.month,today.month + 6):
-                year = today.year
-                month = i
-                #这里只支持1间隔不到1年的
-                if month > 12:
-                    year = today.year + 1
-                    month = month - 12
-                if str(year) not in data:
-                    data[str(year)] = {}
-                year_dict = data[str(year)]      
-                try:
-                    result = self.get_holidays_from_server_one_month(year,month,year_dict)
-                    time.sleep(1)                    
-                except Exception as e:
-                    _LOGGER.debug("Holiday:get_holidays_from_server:year:" + str(year) + ",month:"+ str(month) + ",dict:" + str(year_dict) +  ",error:"+str(e))                                        
 
-
-            with open(holiday_status_json_path,'w') as f:
-                json.dump(data,f)  
-
-            self._holiday_json = data
-
-        else:
-            _LOGGER.debug("Holiday:get_holidays_from_server:not need update!")                                        
-
-
-    def get_holidays_from_server_one_month(self,year,month,year_dict):
-        #year_dict 是为了方便进来传值的，否则这里返回了，外面还得遍历一遍
-        # https://blog.bitefu.net/post/31.html
-        d = "{}{:0>2d}".format(year,month)
-        api = 'http://tool.bitefu.net/jiari/'
-        params = {'d': d ,'info':1}
-        rep = requests.get(api, params)
-        if rep.status_code != 200 or d not in rep.json(): #请求失败或者没有数据都不能存
-            _LOGGER.debug("Holiday:get_holidays_from_server_one_month:ad request or no data!")                                                    
+        if interval.days <= days and days != 0:
+            _LOGGER.debug("get_holidays_from_server: 缓存未过期，跳过更新")
             return
 
-        data = {}
-        result = rep.json()
-        for key in result[d]:
-            t = int(result[d][key]['type'])
-            w = int(result[d][key]['week2'])
-            #节假日 1 2 或者 本应该是周六日的确实工作日的要存
-            if (t == 1 or t == 2) or ((w == 6 or w == 7) and t == 0):
-                year_dict[key] = result[d][key]['type']
+        _LOGGER.info("get_holidays_from_server: 开始从服务器拉取节假日数据...")
+        data = {"update_time": today_str}
 
-    def is_holiday_status(self,date):
+        for i in range(6):
+            month = today.month + i
+            year = today.year
+            if month > 12:
+                year += 1
+                month -= 12
+            data.setdefault(str(year), {})
+            try:
+                self._fetch_one_month(year, month, data[str(year)])
+                time.sleep(0.5)
+            except Exception as e:
+                _LOGGER.warning(
+                    "get_holidays_from_server: %d-%02d 拉取失败: %s", year, month, e
+                )
+
+        self._write_cache(data)
+        self._holiday_json = data
+
+    def _fetch_one_month(self, year: int, month: int, year_dict: dict):
+        """拉取单月节假日数据并写入 year_dict。"""
+        d = f"{year}{month:02d}"
+        params = {"d": d, "info": 1}
+        try:
+            resp = self._ensure_session().get(
+                self._BITEFU_API, params=params, timeout=self._REQUEST_TIMEOUT
+            )
+            resp.raise_for_status()
+            result = resp.json()
+        except Exception as e:
+            _LOGGER.warning("_fetch_one_month %s: %s", d, e)
+            return
+
+        if d not in result:
+            _LOGGER.warning("_fetch_one_month: 响应中无 %s 数据", d)
+            return
+
+        for key, info in result[d].items():
+            t = int(info.get("type", 0))
+            w = int(info.get("week2", 0))
+            # 节假日(1/2)或本应为周末却被调为工作日的(0)都记录
+            if t in (1, 2) or (w in (6, 7) and t == 0):
+                year_dict[key] = str(t)
+
+    # ------------------------------------------------------------------
+    # 节假日状态查询
+    # ------------------------------------------------------------------
+
+    def is_holiday_status(self, date: datetime_class) -> int:
+        """返回 0=工作日 1=休息日 2=法定节假日。
+        
+        此方法必须在 executor 线程中调用（包含阻塞 I/O）。
+        """
+        # 首次调用时从磁盘加载缓存，避免 __init__ 时做 I/O
+        if not self._holiday_json:
+            self.get_holidays_from_disk()
         self.get_holidays_from_server()
-        _LOGGER.debug("Holiday:is_holiday_status:year" + str(date.year))
 
         y_str = str(date.year)
-        h_dict = {}
-        if y_str in self._holiday_json:
-            h_dict = self._holiday_json[y_str]
+        h_dict = self._holiday_json.get(y_str, {})
+        key = f"{date.month:02d}{date.day:02d}"
 
-        m = "{:0>2d}".format(date.month)
-        d = "{:0>2d}".format(date.day)
-        key = '%s%s' % (m,d)
-        status = 0
         if key in h_dict:
-            status = h_dict[key]
-        else:
-            w = date.weekday()
-            if w > 4:
-                status = 1
-            else:
-                status = 0
-        return status
+            return int(h_dict[key])
+        # 没有特殊标注：周末=休息日，工作日=工作日
+        return 1 if date.weekday() >= 5 else 0
 
+    def is_holiday(self, date: datetime_class) -> str:
+        return {0: "工作日", 1: "休息日", 2: "节假日"}[self.is_holiday_status(date)]
 
-    def is_holiday(self,date):
-        d = {0:'工作日',1:'休息日',2:'节假日'}
-        status = self.is_holiday_status(date)
-        return d[status]
+    def is_holiday_today(self) -> str:
+        return self.is_holiday(self.today())
 
-    def is_holiday_today(self):
-        """
-        判断今天是否时节假日
-        :return: bool
-        """
-        today = Holiday.today()
-        return self.is_holiday(today)
+    def is_holiday_tomorrow(self) -> str:
+        return self.is_holiday(self.tomorrow())
 
-    def is_holiday_tomorrow(self):
-        """
-        判断明天是否时节假日
-        :return: bool
-        """
-        day = Holiday.tomorrow()
-        return self.is_holiday(day)
+    # ------------------------------------------------------------------
+    # 最近节日信息（放假安排详情）
+    # ------------------------------------------------------------------
 
-    #获取节日数据
-    def holiday_handle(self,list):
-        subkey = {'date': '阳历日期','nlyf': '农历月份','nl': '农历','w1': '天气','jq': '节气', 'hmax': '最高温度', 'hmin': '最低温度', 'hgl': '降水概率', 'fe': '阴历节日', 'yl': '阳历节日', 'wk': '星期', 'time': '发布时间'}
+    def nearest_holiday_detail(self, min_days: int = 30, max_days: int = 45) -> dict:
+        """返回最近一次法定节假日的结构化放假安排。"""
+        today = self.today()
+        for y in self._holiday_json:
+            if y == "update_time":
+                continue
+            dates = self._holiday_json[y]
+            for m, t in dates.items():
+                if int(t) != 2:
+                    continue
+                d = "{}-{}-{}".format(y, m[0:2], m[2:])
+                date = datetime_class.strptime(d, "%Y-%m-%d")
+                diff = (date - today).days
+                if not (min_days <= diff <= max_days):
+                    continue
+
+                start = date
+                end = date
+                before_workdays = []
+                after_workdays = []
+
+                while self.is_holiday_status(start) != 0:
+                    start -= timedelta(days=1)
+                while self.is_holiday_status(end) != 0:
+                    end += timedelta(days=1)
+
+                last_weekend = start
+                next_weekend = end
+                while self.is_holiday_status(last_weekend) == 0:
+                    invert = last_weekend.weekday() in (5, 6)
+                    before_workdays.append({"date": last_weekend, "invert": invert})
+                    last_weekend -= timedelta(days=1)
+                while self.is_holiday_status(next_weekend) == 0:
+                    invert = next_weekend.weekday() in (5, 6)
+                    after_workdays.append({"date": next_weekend, "invert": invert})
+                    next_weekend += timedelta(days=1)
+
+                start += timedelta(days=1)
+                end -= timedelta(days=1)
+
+                before_workdays.reverse()
+                holiday_name = self._resolve_holiday_name(y, m)
+                holiday_days = (end - start).days + 1
+                before_days = len(before_workdays)
+                after_days = len(after_workdays)
+                before_range = self._format_range(before_workdays)
+                after_range = self._format_range(after_workdays)
+
+                rows = []
+                if before_range:
+                    rows.append({
+                        "label": "向前拼",
+                        "range": before_range,
+                        "start": before_workdays[0]["date"].strftime("%Y-%m-%d"),
+                        "end": before_workdays[-1]["date"].strftime("%Y-%m-%d"),
+                        "days": before_days,
+                        "total_days": holiday_days + before_days,
+                    })
+                if after_range:
+                    rows.append({
+                        "label": "向后拼",
+                        "range": after_range,
+                        "start": after_workdays[0]["date"].strftime("%Y-%m-%d"),
+                        "end": after_workdays[-1]["date"].strftime("%Y-%m-%d"),
+                        "days": after_days,
+                        "total_days": holiday_days + after_days,
+                    })
+                detail = {
+                    "name": holiday_name,
+                    "range": f"{start.month}/{start.day} - {end.month}/{end.day}",
+                    "start": start.strftime("%Y-%m-%d"),
+                    "end": end.strftime("%Y-%m-%d"),
+                    "days": holiday_days,
+                    "title": f"{holiday_name}（{start.month}/{start.day} - {end.month}/{end.day}）",
+                    "rows": rows,
+                }
+                _LOGGER.debug("nearest_holiday_detail: %s", detail)
+                return detail
+        return {}
+
+    def nearest_holiday_info(self, min_days: int = 30, max_days: int = 45) -> str:
+        """返回最近一次法定节假日的放假安排说明。"""
+        detail = self.nearest_holiday_detail(min_days, max_days)
+        if not detail:
+            return ""
+
+        lines = [detail["title"]]
+        for row in detail.get("rows", []):
+            lines.append(
+                f"{row['label']}：{row['range']}（{row['days']}天）👉 连休 {row['total_days']} 天"
+            )
+        info = "\n".join(lines)
+        _LOGGER.debug("nearest_holiday_info: %s", info)
+        return info
+
+    def _format_range(self, days: list[dict]) -> str:
+        """将日期列表格式化为 M/D - M/D。"""
+        if not days:
+            return ""
+        start = days[0]["date"]
+        end = days[-1]["date"]
+        return f"{start.month}/{start.day} - {end.month}/{end.day}"
+
+    # ------------------------------------------------------------------
+    # getHoliday：兼容旧接口，返回 {date: 节日名} 字典
+    # ------------------------------------------------------------------
+
+    def getHoliday(self, days: int = 1) -> dict:
+        """返回 {datetime.date: 节日名称} 字典（用于寻找最近节日）。"""
+        self.get_holidays_from_server()
         results = {}
-        for dict in list:
-            subdict = {value: dict[key] for key, value in subkey.items()}
-            if subdict['阴历节日'] != '' or subdict['阳历节日']!= '':
-                year = int(subdict['阳历日期'][0:4],base=10);
-                month = (int(subdict['阳历日期'][4:6],base=10) if int(subdict['阳历日期'][4:6],base=10) >=10 else int(subdict['阳历日期'][5:6],base=10))
-                day = (int(subdict['阳历日期'][6:8],base=10) if int(subdict['阳历日期'][6:8],base=10) >=10 else int(subdict['阳历日期'][7:8],base=10))
-                hlday = subdict['阴历节日']+subdict['阳历节日'];
-                ##print(datetime.date(year=year, month=month, day=day).str()+"-"+hlday)
-                results[datetime.date(year=year, month=month, day=day)] = hlday
+        for y, dates in self._holiday_json.items():
+            if y == "update_time":
+                continue
+            for m, t in dates.items():
+                if int(t) == 2:
+                    d_str = "{}-{}-{}".format(y, m[0:2], m[2:])
+                    try:
+                        d = datetime_class.strptime(d_str, "%Y-%m-%d").date()
+                        # 节日名称从 lunar 模块推断，这里简单用日期字符串
+                        results[d] = self._resolve_holiday_name(y, m)
+                    except Exception:
+                        pass
         return results
 
-    #days 每几天更新数据 days = 0 则每次更新
-    def getHoliday(self,days = 1):
-        last_date = '2020-01-01' #这个是默认时间，数据库读不到 取当天肯定会执行更新逻辑
+    def _resolve_holiday_name(self, year: str, mmdd: str) -> str:
+        """根据年份和 MMDD 推断节日名称（使用内置节日映射）。"""
+        _HOLIDAY_NAMES = {
+            "0101": "元旦",
+            "0214": "情人节",
+            "0308": "妇女节",
+            "0401": "愚人节",
+            "0501": "劳动节",
+            "0601": "儿童节",
+            "0701": "建党节",
+            "0801": "建军节",
+            "0910": "教师节",
+            "1001": "国庆节",
+            "1002": "国庆节",
+            "1003": "国庆节",
+            "1004": "国庆节",
+            "1005": "国庆节",
+            "1006": "国庆节",
+            "1007": "国庆节",
+            "1231": "元旦前夕",
+        }
+        if mmdd in _HOLIDAY_NAMES:
+            return _HOLIDAY_NAMES[mmdd]
+
+        month = int(mmdd[:2])
+        day = int(mmdd[2:])
+        year_int = int(year)
+
+        # 兼容旧逻辑：未命中固定映射时，再按公历节日/农历节日/节气动态解析。
+        names = []
+
+        solar_name = lunar.Festival.solar_Fstv(month, day)
+        if solar_name:
+            names.extend([name.strip() for name in solar_name.split(",") if name.strip()])
+
         try:
-            last_date = self.database.getData('LIMIT 1')[0]['updateDate']
-        except Exception as e:
-            _LOGGER.debug("Holiday:getHoliday:database get last object!"+str(e))                                                                
+            lunar_date = lunar.LunarDate.fromSolarDate(year_int, month, day)
+            lunar_name = lunar.Festival.lunar_Fstv(lunar_date.month, lunar_date.day)
+            if lunar_name:
+                names.extend([name.strip() for name in lunar_name.split(",") if name.strip()])
+        except Exception as err:
+            _LOGGER.debug("resolve lunar holiday name failed for %s-%s: %s", year, mmdd, err)
 
-        # 计算今天和未来一个日期的天数差值
-        now_str = datetime_class.now().strftime('%Y-%m-%d')
-        today = datetime_class.strptime(now_str, "%Y-%m-%d")
-        last_update = datetime_class.strptime(last_date,'%Y-%m-%d')
-        interval = today - last_update
-        #从服务器拿数据
-        if interval.days > days or days == 0:
-            list = self.getholidayForNMonths()
-            try:
-                for subList in list:
-                    #一次获取 是一个subList
-                    for dict in subList:
-                        # print(dict)
-                        self.database.setData(dict['date'],json.dumps(dict),today.strftime('%Y-%m-%d'))
+        try:
+            for item in lunar.jieqi().creat_year_jieqi(year_int):
+                comps = item["time"].split("-")
+                if item["name"] == "清明" and int(comps[1]) == month and int(comps[2]) == day:
+                    names.append("清明节")
+                    break
+        except Exception as err:
+            _LOGGER.debug("resolve term holiday name failed for %s-%s: %s", year, mmdd, err)
 
-            except Exception as e:
-                _LOGGER.debug("Holiday:getholidayForNMonths:"+str(e))                                                                
+        seen = set()
+        ordered = []
+        for name in names:
+            if name not in seen:
+                seen.add(name)
+                ordered.append(name)
 
+        if ordered:
+            preferred = next((name for name in ordered if "节" in name), ordered[0])
+            if preferred == "元旦节":
+                return "元旦"
+            if preferred == "国际儿童节":
+                return "儿童节"
+            return preferred
 
-        #从本地数据库拿数据
-        results = self.database.getData()
-        list = []
-        for result in results:
-            r = json.loads(result['json'])
-            list.append(r)
-        return self.holiday_handle(list)
+        return f"{month}月{day}日"
 
-    #n 获取从该月开始的往后n个月的数据 ,这里n要小于12 因为year += 1
-    def getholidayForNMonths(self,n=6):
-        # return self.getonline40dholiday('101010100',datetime.date.today().strftime('%Y%m%d'))
-        year_str = time.strftime("%Y", time.localtime())
-        month_str = time.strftime("%m", time.localtime())
-        year      = int(year_str)
-        month     = int(month_str)
-        list = []
-        for i in range(0,n):
-            m = month
-            y = year
-            if m + i > 12:
-                y += 1
-                m = m + i - 12
-            else:
-                m = month + i
-            # print('y:'+str(y) + ' m:'+str(m))
-            results = self.getonline40dholiday('101010100',str(y),"{:0>2d}".format(m))
-            sub_list = []
-            for r in results:
-                #有阴历或阳历节日的
-                if r['fe'] != '' or r['yl'] != '':
-                    sub_list.append(r)
-            list.append(sub_list)
-        return list
-
-    #year month 需要字符串 '2010' '01'
-    def getonline40dholiday(self,citycode,year,month):
-        url = "http://d1.weather.com.cn/calendar_new/"+year+"/"+citycode+"_"+year+month+".html";
-        # print(url)
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
-         "Referer": "http://www.weather.com.cn/weather40d/"+citycode+".shtml"}
-        res = self.session.get(url, headers=headers)
-        holiday_list = []
-        try:    
-            json_str = res.content.decode(encoding='utf-8')[11:]
-            holiday_list = json.loads(json_str)
-        except Exception as e:
-            _LOGGER.error(f"getonline40dholiday,error:{e}")
-            _LOGGER.error(f"getonline40dholiday,result:{res.text}")
-        return holiday_list
 
 def main():
-    # Holiday().nearest_holiday_info(14,45)
-    # print(Holiday().is_holiday_today())
-    # print(Holiday.day(-1))
     pass
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
-"""
-{"update_time": "2020-06-09", "2020": {"0606": 1, "0607": 1, "0613": 1, "0614": 1, "0620": 1, "0621": 1, "0625": 2, "0626": 1, "0627": 1, "0628": 0, "0704": 1, "0705": 1, "0711": 1, "0712": 1, "0718": 1, "0719": 1, "0725": 1, "0726": 1, "0801": 1, "0802": 1, "0808": 1, "0809": 1, "0815": 1, "0816": 1, "0822": 1, "0823": 1, "0829": 1, "0830": 1, "0905": 1, "0906": 1, "0912": 1, "0913": 1, "0919": 1, "0920": 1, "0926": 1, "0927": 0, "1001": 2, "1002": 2, "1003": 2, "1004": 1, "1005": 1, "1006": 1, "1007": 1, "1008": 1, "1010": 0, "1011": 1, "1017": 1, "1018": 1, "1024": 1, "1025": 1, "1031": 1, "1101": 1, "1107": 1, "1108": 1, "1114": 1, "1115": 1, "1121": 1, "1122": 1, "1128": 1, "1129": 1}}
-"""

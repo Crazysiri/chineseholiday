@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "中国节假日 - 基本设置",
+        "description": "配置传感器基本信息和通知方式。",
+        "data": {
+          "name": "传感器名称（entity_id 的一部分）",
+          "notify_script_name": "通知脚本名称（HA scripts 中已定义的脚本，留空则不通知）",
+          "notify_times": "通知时间（多个时间用逗号分隔，例如：11:00:00,18:00:00）",
+          "show_detail": "在属性中附加完整 data 详情"
+        }
+      },
+      "anniversary": {
+        "title": "中国节假日 - 纪念日设置",
+        "description": "配置公历/农历纪念日，格式为 YAML 对象。\n\n公历示例：\n```yaml\n0101:\n  - 张三生日\n20200220:\n  - 结婚纪念日\n```\n\n农历示例：\n```yaml\n0321:\n  - 李四农历生日\n```\n\n计时纪念日（calculate_age）示例：\n```yaml\n- date: '2022-10-10 10:23:10'\n  name: 结婚周年\n```",
+        "data": {
+          "solar_anniversary": "公历纪念日（格式：MMDD 或 YYYYMMDD → [名称列表]）",
+          "lunar_anniversary": "农历纪念日（格式：MMDD 或 YYYYMMDD → [名称列表]）",
+          "calculate_age": "精确计时纪念日（列表，每项含 date 和 name 字段）"
+        }
+      },
+      "notify": {
+        "title": "中国节假日 - 通知规则",
+        "description": "设置提前多少天通知哪些节日，格式为 YAML 对象。\n\n示例：\n```yaml\n'31|14|7|1|0':\n  - date: '0627'\n  - date: '0806'\n    solar: false\n'31|7':\n  - name: 母亲节\n```",
+        "data": {
+          "notify_principles": "通知规则（键为提前天数如 '31|14|7|1|0'，值为日期/节日列表）"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "该传感器已经配置"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "基本设置",
+        "data": {
+          "name": "传感器名称",
+          "notify_script_name": "通知脚本名称",
+          "notify_times": "通知时间（多个用逗号分隔）",
+          "show_detail": "显示详细数据属性"
+        }
+      },
+      "anniversary": {
+        "title": "纪念日设置",
+        "data": {
+          "solar_anniversary": "公历纪念日",
+          "lunar_anniversary": "农历纪念日",
+          "calculate_age": "精确计时纪念日"
+        }
+      },
+      "notify": {
+        "title": "通知规则",
+        "data": {
+          "notify_principles": "通知规则"
+        }
+      }
+    }
+  }
+}
