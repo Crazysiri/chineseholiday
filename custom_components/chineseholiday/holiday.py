@@ -12,6 +12,7 @@ from datetime import timedelta
 import json
 import logging
 import os
+import re
 import time
 
 import requests
@@ -213,59 +214,48 @@ class Holiday:
                 d = "{}-{}-{}".format(y, m[0:2], m[2:])
                 date = datetime_class.strptime(d, "%Y-%m-%d")
                 diff = (date - today).days
-                if not (min_days <= diff <= max_days):
+                if diff > max_days:
                     continue
 
                 start = date
                 end = date
-                before_workdays = []
-                after_workdays = []
 
                 while self.is_holiday_status(start) != 0:
                     start -= timedelta(days=1)
                 while self.is_holiday_status(end) != 0:
                     end += timedelta(days=1)
 
-                last_weekend = start
-                next_weekend = end
-                while self.is_holiday_status(last_weekend) == 0:
-                    invert = last_weekend.weekday() in (5, 6)
-                    before_workdays.append({"date": last_weekend, "invert": invert})
-                    last_weekend -= timedelta(days=1)
-                while self.is_holiday_status(next_weekend) == 0:
-                    invert = next_weekend.weekday() in (5, 6)
-                    after_workdays.append({"date": next_weekend, "invert": invert})
-                    next_weekend += timedelta(days=1)
-
                 start += timedelta(days=1)
                 end -= timedelta(days=1)
 
-                before_workdays.reverse()
-                holiday_name = self._resolve_holiday_name(y, m)
+                if diff < min_days and not self._is_in_bridge_window(start, end, today):
+                    continue
+
+                holiday_name = self._resolve_holiday_period_name(y, start, end, m)
                 holiday_days = (end - start).days + 1
-                before_days = len(before_workdays)
-                after_days = len(after_workdays)
-                before_range = self._format_range(before_workdays)
-                after_range = self._format_range(after_workdays)
+                before_plan = self._build_bridge_plan(start, end, "before", today)
+                after_plan = self._build_bridge_plan(start, end, "after", today)
 
                 rows = []
-                if before_range:
+                if before_plan:
                     rows.append({
                         "label": "向前拼",
-                        "range": before_range,
-                        "start": before_workdays[0]["date"].strftime("%Y-%m-%d"),
-                        "end": before_workdays[-1]["date"].strftime("%Y-%m-%d"),
-                        "days": before_days,
-                        "total_days": holiday_days + before_days,
+                        "range": before_plan["leave_range"],
+                        "start": before_plan["leave_start"],
+                        "end": before_plan["leave_end"],
+                        "days": before_plan["leave_days"],
+                        "total_days": before_plan["total_days"],
+                        "calendar_days": before_plan["calendar_days"],
                     })
-                if after_range:
+                if after_plan:
                     rows.append({
                         "label": "向后拼",
-                        "range": after_range,
-                        "start": after_workdays[0]["date"].strftime("%Y-%m-%d"),
-                        "end": after_workdays[-1]["date"].strftime("%Y-%m-%d"),
-                        "days": after_days,
-                        "total_days": holiday_days + after_days,
+                        "range": after_plan["leave_range"],
+                        "start": after_plan["leave_start"],
+                        "end": after_plan["leave_end"],
+                        "days": after_plan["leave_days"],
+                        "total_days": after_plan["total_days"],
+                        "calendar_days": after_plan["calendar_days"],
                     })
                 detail = {
                     "name": holiday_name,
@@ -279,6 +269,139 @@ class Holiday:
                 _LOGGER.debug("nearest_holiday_detail: %s", detail)
                 return detail
         return {}
+
+    def _is_in_bridge_window(
+        self,
+        holiday_start: datetime_class,
+        holiday_end: datetime_class,
+        today: datetime_class,
+    ) -> bool:
+        """判断今天是否已进入节前/节后拼假可展示窗口。"""
+        before_start = self._bridge_edge_date(holiday_start, "before")
+        after_end = self._bridge_edge_date(holiday_end, "after")
+        if before_start and before_start <= today <= holiday_end:
+            return True
+        if after_end and holiday_start <= today <= after_end:
+            return True
+        return False
+
+    def _bridge_edge_date(self, anchor: datetime_class, direction: str) -> datetime_class | None:
+        """获取节前/节后拼假展示窗口的最外层边界日期。"""
+        step = -1 if direction == "before" else 1
+        cursor = anchor - timedelta(days=1) if direction == "before" else anchor + timedelta(days=1)
+
+        saw_workday = False
+        while self.is_holiday_status(cursor) == 0:
+            saw_workday = True
+            cursor += timedelta(days=step)
+
+        if not saw_workday:
+            return None
+
+        edge = cursor - timedelta(days=step)
+        while self.is_holiday_status(cursor) != 0:
+            edge = cursor
+            cursor += timedelta(days=step)
+
+        return edge
+
+    def _resolve_holiday_period_name(
+        self,
+        year: str,
+        holiday_start: datetime_class,
+        holiday_end: datetime_class,
+        fallback_mmdd: str,
+    ) -> str:
+        """从整段假期中找最合适的节日名，避免返回“5月2日”这类泛名称。"""
+        current = holiday_start
+        while current <= holiday_end:
+            mmdd = current.strftime("%m%d")
+            name = self._resolve_holiday_name(year, mmdd)
+            if not re.fullmatch(r"\d+月\d+日", name):
+                return name
+            current += timedelta(days=1)
+        return self._resolve_holiday_name(year, fallback_mmdd)
+
+    def _build_bridge_plan(
+        self,
+        holiday_start: datetime_class,
+        holiday_end: datetime_class,
+        direction: str,
+        today: datetime_class,
+    ) -> dict:
+        """构建节前/节后拼假方案，补上紧邻的休息日和调休工作日。"""
+        step = -1 if direction == "before" else 1
+        cursor = holiday_start - timedelta(days=1) if direction == "before" else holiday_end + timedelta(days=1)
+
+        leave_dates = []
+        while self.is_holiday_status(cursor) == 0:
+            leave_dates.append(cursor)
+            cursor += timedelta(days=step)
+
+        if not leave_dates:
+            return {}
+
+        extra_rest_dates = []
+        while self.is_holiday_status(cursor) != 0:
+            extra_rest_dates.append(cursor)
+            cursor += timedelta(days=step)
+
+        if direction == "before":
+            leave_dates.reverse()
+            extra_rest_dates.reverse()
+            calendar_dates = extra_rest_dates + leave_dates
+        else:
+            calendar_dates = leave_dates + extra_rest_dates
+
+        clip_anchor = today.replace(hour=0, minute=0, second=0, microsecond=0)
+        if direction == "before" and calendar_dates and holiday_start <= clip_anchor <= holiday_end:
+            calendar_dates = []
+            leave_dates = []
+            extra_rest_dates = []
+        elif direction == "before" and calendar_dates and calendar_dates[0] <= clip_anchor <= holiday_end:
+            calendar_dates = [d for d in calendar_dates if d >= clip_anchor]
+            leave_dates = [d for d in leave_dates if d >= clip_anchor]
+            extra_rest_dates = [d for d in extra_rest_dates if d >= clip_anchor]
+        elif direction == "after" and calendar_dates and holiday_start <= clip_anchor <= calendar_dates[-1]:
+            calendar_dates = [d for d in calendar_dates if d >= clip_anchor]
+            leave_dates = [d for d in leave_dates if d >= clip_anchor]
+            extra_rest_dates = [d for d in extra_rest_dates if d >= clip_anchor]
+
+        if not calendar_dates:
+            return {}
+
+        calendar_days = []
+        leave_set = {d.strftime("%Y-%m-%d") for d in leave_dates}
+        rest_set = {d.strftime("%Y-%m-%d") for d in extra_rest_dates}
+        for date in calendar_dates:
+            key = date.strftime("%Y-%m-%d")
+            if key in leave_set:
+                tag = "请假"
+                day_type = "leave"
+            elif key in rest_set:
+                tag = "休息"
+                day_type = "rest"
+            else:
+                tag = "上班"
+                day_type = "work"
+            calendar_days.append({
+                "key": key,
+                "label": f"{date.month}/{date.day}",
+                "tag": tag,
+                "type": day_type,
+            })
+
+        leave_range = self._format_date_range(leave_dates)
+        total_days = len(calendar_days) + (holiday_end - holiday_start).days + 1
+
+        return {
+            "leave_range": leave_range,
+            "leave_start": leave_dates[0].strftime("%Y-%m-%d") if leave_dates else "",
+            "leave_end": leave_dates[-1].strftime("%Y-%m-%d") if leave_dates else "",
+            "leave_days": len(leave_dates),
+            "total_days": total_days,
+            "calendar_days": calendar_days,
+        }
 
     def nearest_holiday_info(self, min_days: int = 30, max_days: int = 45) -> str:
         """返回最近一次法定节假日的放假安排说明。"""
@@ -301,6 +424,14 @@ class Holiday:
             return ""
         start = days[0]["date"]
         end = days[-1]["date"]
+        return f"{start.month}/{start.day} - {end.month}/{end.day}"
+
+    def _format_date_range(self, dates: list[datetime_class]) -> str:
+        """将 datetime 列表格式化为 M/D - M/D。"""
+        if not dates:
+            return ""
+        start = dates[0]
+        end = dates[-1]
         return f"{start.month}/{start.day} - {end.month}/{end.day}"
 
     # ------------------------------------------------------------------
