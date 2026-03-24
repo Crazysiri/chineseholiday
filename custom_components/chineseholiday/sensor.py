@@ -1,5 +1,5 @@
 # coding=utf-8
-"""中国节假日传感器 - 版本 0.3.1-pre"""
+"""中国节假日传感器 - 版本 0.3.2-pre"""
 from __future__ import annotations
 
 import asyncio
@@ -543,10 +543,12 @@ class ChineseHolidaySensor(SensorEntity):
 
         self.calculate_age()
 
-        detail = self._holiday.nearest_holiday_detail(0, 45)
-        if detail:
-            self.attributes["holiday_info_detail"] = detail
-            self.localizedAttributes["节假日放假详情结构化"] = detail
+        details = self._holiday.nearest_holiday_details(2, 0, 45)
+        if details:
+            self.attributes["holiday_info_details"] = details
+            self.localizedAttributes["节假日放假详情结构化列表"] = details
+            self.attributes["holiday_info_detail"] = details[0]
+            self.localizedAttributes["节假日放假详情结构化"] = details[0]
 
         info = self._holiday.nearest_holiday_info(0, 45)
         if info:

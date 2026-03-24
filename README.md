@@ -63,7 +63,6 @@ resources:
 ```yaml
 type: custom:ch_calendar-card
 entity: sensor.chinese_holiday
-icons: /local/custom-lovelace/ch_calendar-card/icons/
 ```
 
 如果你沿用旧版 YAML 配置，例如 `name: holiday`，这里的实体改成你的实际实体 ID，比如 `sensor.holiday`。
@@ -186,7 +185,7 @@ test:
 
 ## 版本说明
 
-- `0.3.1-pre`：增加 UI 配置流，补充品牌资源、多语言文案，适配新版 Home Assistant / HACS 分发
+- `0.3.2-pre`：增加最近多次节假日结构化放假详情，继续完善 UI 配置流与新版 Home Assistant / HACS 适配
 - `0.2.0`：支持 HACS，前端从 Polymer 升级到 Lit
 
 更早的更新记录、历史说明和旧接入方式见：[旧版文档](docs/legacy.md)

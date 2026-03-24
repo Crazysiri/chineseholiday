@@ -201,9 +201,12 @@ class Holiday:
     # 最近节日信息（放假安排详情）
     # ------------------------------------------------------------------
 
-    def nearest_holiday_detail(self, min_days: int = 30, max_days: int = 45) -> dict:
-        """返回最近一次法定节假日的结构化放假安排。"""
+    def nearest_holiday_details(
+        self, count: int = 2, min_days: int = 30, max_days: int = 45
+    ) -> list[dict]:
+        """返回最近若干次法定节假日的结构化放假安排。"""
         today = self.today()
+        details = []
         for y in self._holiday_json:
             if y == "update_time":
                 continue
@@ -266,8 +269,18 @@ class Holiday:
                     "title": f"{holiday_name}（{start.month}/{start.day} - {end.month}/{end.day}）",
                     "rows": rows,
                 }
-                _LOGGER.debug("nearest_holiday_detail: %s", detail)
-                return detail
+                details.append(detail)
+                if len(details) >= count:
+                    _LOGGER.debug("nearest_holiday_details: %s", details)
+                    return details
+        _LOGGER.debug("nearest_holiday_details: %s", details)
+        return details
+
+    def nearest_holiday_detail(self, min_days: int = 30, max_days: int = 45) -> dict:
+        """返回最近一次法定节假日的结构化放假安排。"""
+        details = self.nearest_holiday_details(1, min_days, max_days)
+        if details:
+            return details[0]
         return {}
 
     def _is_in_bridge_window(
