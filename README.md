@@ -1,268 +1,192 @@
-# Chinese Holiday 中国节假日日历插件
-## 日历及节假日显示组件
-可以显示中国节假日, 周年, 纪念日, 生日等(支持农历和阴历)日历插件, 同时, 支持计算某个日期和时间已经过去了N年N月N天N小时N秒.
+# Chinese Holiday 中国节假日日历
 
-![示例图](https://github.com/Crazysiri/chineseholiday/blob/master/snaptshot_1.png)
+一个面向 Home Assistant 的中国节假日与纪念日传感器，支持节假日、节气、阳历/农历纪念日、生日年龄、周年计时和通知脚本，并可配合前端卡片展示。
 
+![卡片示例](snapshot.png)
 
-# 安装
-## HACS 安装(建议使用HACS安装和配置)
-0. 手动添加自定义存储库 https://github.com/Crazysiri/chineseholiday 
-1. HACS 添加集成 > 搜索 ```中国节假日日历```，点击下载
+## 快速接入
 
-配合此集成的[前端卡片](https://github.com/Crazysiri/chineseholiday_card)
+### 1. 安装集成
 
-## 手动安装
-下载 /custom_components/chineseholida 下的所有文件
-复制到 \config\custom_components 
-重启Home Assistant
-此时应该可以在 配置 > 设备与服务 > 添加集成内搜索"chineseholiday" 或者 "中国节假日日历插件"
+推荐使用 HACS：
 
-## 安装卡片，使用以下配置：
+1. 在 HACS 中添加自定义仓库：`https://github.com/Crazysiri/chineseholiday`
+2. 搜索并安装 `中国节假日日历`
+3. 重启 Home Assistant
 
-```
-在页面添加下面的源
+也可以手动安装：
+
+1. 将 `custom_components/chineseholiday` 目录复制到 HA 配置目录下的 `custom_components/`
+2. 重启 Home Assistant
+
+### 2. 在 HA 中添加并配置
+
+`v0.3.x` 起支持集成配置流，推荐直接在 UI 中完成配置：
+
+1. 打开 `设置 > 设备与服务 > 添加集成`
+2. 搜索 `中国节假日日历`
+3. 按 3 步填写：
+   - 基本设置：名称、通知脚本、通知时间、是否暴露详细属性
+   - 纪念日设置：公历纪念日、农历纪念日、精确计时纪念日
+   - 通知规则：通知规则
+
+默认会创建实体 `sensor.chinese_holiday`。如果你是旧版 YAML 用户，实体名仍取决于 `name`。
+
+UI 中显示的是中文字段名，底层仍然对应原来的 YAML 键：
+
+| UI 中的名称 | 对应旧 YAML 键 |
+| --- | --- |
+| 公历纪念日 | `solar_anniversary` |
+| 农历纪念日 | `lunar_anniversary` |
+| 精确计时纪念日 | `calculate_age` |
+| 通知规则 | `notify_principles` |
+
+也就是说，UI 里看不到 `solar_anniversary`、`lunar_anniversary`、`calculate_age`、`notify_principles` 这些英文键名，但它们仍然是这几个字段实际对应的数据结构。
+
+### 3. 接入前端卡片
+
+配合前端卡片使用效果最好：<https://github.com/Crazysiri/chineseholiday_card>
+
+新版推荐流程是先完成后端集成，再把卡片绑定到实体：
+
+1. 安装 `chineseholiday_card`
+2. 在 Lovelace 资源中添加：
+
+```yaml
 resources:
   - type: module
     url: /local/custom-lovelace/ch_calendar-card/ch_calendar-card.js
-
-在添加卡片, 可以直接找到中国节假日日历的卡片, 或者 手动添加卡片, 填写下面的卡片配置代码
-
-卡片配置
-  - type: 'custom:ch_calendar-card'
-    entity: sensor.holiday                                        
-    icons: /local/custom-lovelace/ch_calendar-card/icons/
-
 ```
 
-# 配置：
-在configuration.yaml文件里,添加你的各种日期, 重启生效.
+3. 添加卡片：
 
+```yaml
+type: custom:ch_calendar-card
+entity: sensor.chinese_holiday
+icons: /local/custom-lovelace/ch_calendar-card/icons/
 ```
+
+如果你沿用旧版 YAML 配置，例如 `name: holiday`，这里的实体改成你的实际实体 ID，比如 `sensor.holiday`。
+
+![纪念日与假期展示](snaptshot_1.png)
+
+## 支持的能力
+
+- 中国节假日、工作日、休息日状态
+- 最近节日与放假安排
+- 节气、农历、公历、星期、本年度周数
+- 阳历/农历纪念日
+- 生日自动显示年龄，纪念日自动显示周年
+- `calculate_age` 精确显示已经过去/还有多久
+- `notify_principles` + `notify_script_name` 节日提醒
+- UI 配置流，同时保留 YAML 向后兼容
+
+## 配置示例
+
+### UI 字段与旧键名对照
+
+| UI 中的名称 | 旧 YAML 键 | 说明 |
+| --- | --- | --- |
+| 公历纪念日 | `solar_anniversary` | `MMDD` 或 `YYYYMMDD` -> 名称列表 |
+| 农历纪念日 | `lunar_anniversary` | `MMDD` 或 `YYYYMMDD` -> 名称列表 |
+| 精确计时纪念日 | `calculate_age` | 列表，每项包含 `date` 和 `name` |
+| 通知规则 | `notify_principles` | 键是提前天数，值是日期/节日列表 |
+
+### UI 配置里的对象格式
+
+UI 中的“公历纪念日”对应 `solar_anniversary`：
+
+```yaml
+0101:
+  - 元旦聚餐
+20200220:
+  - bb生日
+  - aa和bb结婚纪念日
+```
+
+说明：
+
+- 文案包含“生日”时，会显示成 `xx生日(1岁)`
+- 其它文案统一显示为 `xx纪念日(1周年)`
+
+UI 中的“农历纪念日”对应 `lunar_anniversary`：
+
+```yaml
+0321:
+  - 妈妈农历生日
+```
+
+UI 中的“精确计时纪念日”对应 `calculate_age`：
+
+```yaml
+- date: "2022-10-10 10:23:10"
+  name: aa和bb结婚周年
+```
+
+UI 中的“通知规则”对应 `notify_principles`：
+
+```yaml
+'14|7|1':
+  - date: "0101"
+    solar: true
+  - date: "0102"
+    solar: false
+'0':
+  - name: "母亲节"
+  - name: "父亲节"
+```
+
+### 旧版 YAML 配置
+
+仍然支持 `configuration.yaml`：
+
+```yaml
 sensor:
   - platform: chineseholiday
     name: holiday
     solar_anniversary:
-      '0121':
+      "0121":
         - aa生日
         - cc生日
-      '20200220': #这样配置会在显示的时候略有不一样，会以 bb生日(1岁) 的形式显示, 文案不包含 ‘生日’ 的统一显示为周年 xx纪念日（1周年）。
-        - bb生日  #卡片前端aa生日(1岁)
-        - aa和bb结婚纪念日 #卡片前端显示xx纪念日（1周年）
+      "20200220":
+        - bb生日
+        - aa和bb结婚纪念日
     lunar_anniversary:
-      '0321':
+      "0321":
         - aa农历生日
-    calculate_age: #通过配置一个 'aa和bb结婚周年' '2022-10-10 10:23:10'(过去的时间)，1. 自动生成未来的时间将近的周年纪念日, 2.计算这个时间已经过去了N年N月N天N小时N秒
-        - date: '2022-10-10 10:23:10'
-          name: 'aa和bb结婚周年'
-    notify_script_name: 'test' #调用脚本名字
-    notify_times: #早上9点10分调用 13:00:00 下午1点调用
-        - "09:10:00" 
-        - "13:00:00"
-    notify_principles: #调用脚本规则
-      '14|7|1': #未来某个日期（下面每个date字段对应）离现在还有 14 天 7天 1天时调用脚本
-        - date: "0101" #需要调用脚本的日期
-          solar: False ##没填solar的默认为True 即阳历. false就是阴历, true是阳历 
-        - date: "0102"  #需要调用脚本的日期 solar 不写 默认为True 即阳历
-      '0': #0即为当天调用
-        #*下面两种是特殊情况采用name，只有父亲节和母亲节 ，也就是填了name就不要填date，填name的只有这两种情况
+    calculate_age:
+      - date: "2022-10-10 10:23:10"
+        name: "aa和bb结婚周年"
+    notify_script_name: "test"
+    notify_times:
+      - "09:10:00"
+      - "13:00:00"
+    notify_principles:
+      "14|7|1":
+        - date: "0101"
+          solar: false
+        - date: "0102"
+      "0":
         - name: "母亲节"
         - name: "父亲节"
-
 ```
 
+## 通知脚本示例
 
-# 更新
-
-
-+ #### 2026.03.22 更新
-
-版本 0.3.1-pre
-
-1.新增集成配置流程，支持在 UI 中直接添加和配置集成
-
-2.补充品牌资源、多语言文案与初始化结构，适配新版 Home Assistant / HACS 分发
-
-#############################################################################
-
-
-+ #### 2023.07.12 更新
-
-版本 0.2.0
-
-1.支持HACS
-
-2.Polymer升级为Lit
-
-#############################################################################
-
-+ #### 2020.06.03 更新
-
-1.修复当天的纪念日 不显示的问题
-
-2.custom ui的 间距问题（应该是新版本导致的）
-
-3.点击custom ui 可以进入控件的详情
-
-4.控件详情的汉化
-
-5.在最近的纪念日之后增加 接下来的纪念日，现在能同时显示更多自定义的纪念日了（目前支持两个，看后期需要增加yaml配置）
-
-#############################################################################
-
-+ #### 2020.03.30 更新 可以配置生日显示为：xx生日(10岁)
-
-```
-    #只对 下面文案中包含'生日'的有效 例如 - aa生日 在显示的时候变成 aa生日(1岁)
-    # 文案不包含 ‘生日’ 的统一显示为周年 xx纪念日（1周年）。 
-    solar_anniversary:
-      '20200121': #该位置加入年即可
-        - aa生日  #卡片前端aa生日(1岁)
-        - xx纪念日 #卡片前端显示xx纪念日（1周年）
-```
-
-其它优化：根据论坛一个哥们的代码，将休息日，节假日，工作日改成icon（https://bbs.hassbian.com/forum.php?mod=viewthread&tid=9615&page=1#pid315704）
-
-
-#############################################################################
-
-+ #### 2020.02.19 更新 加入custom UI
-
-```
-ui-lovelace.yaml
-
-resources:
-  - type: module
-    url: /local/custom-lovelace/ch_calendar-card/ch_calendar-card.js
-
-卡片配置
-  - type: 'custom:ch_calendar-card'
-    entity: sensor.holiday                                        
-    icons: /local/custom-lovelace/ch_calendar-card/icons/
-
-
-```
-
-#############################################################################
-
-+ #### 2020.02.08 - version:0.1.3
-
-新增功能：
-
-1.外部调用脚本功能，支持母亲节和父亲节设置
-
-详见最下面的脚本配置。
-
-2.修复由于 utc 时间导致过一天不更新时间的bug
-
-#############################################################################
-
-
-+ #### 2020.02.06 - version:0.1.2
-
-优化已有功能：
-
-1.节气通过算法计算得出某年正确的值，取代现有写死的数据（节气每年都不一样，省得每年都改）
-
-#############################################################################
-
-
-+ #### 2020.02.19 更新 加入custom UI
-
-```
-ui-lovelace.yaml
-
-resources:
-  - type: module
-    url: /local/custom-lovelace/ch_calendar-card/ch_calendar-card.js
-
-卡片配置
-  - type: 'custom:ch_calendar-card'
-    entity: sensor.holiday                                        
-    icons: /local/custom-lovelace/ch_calendar-card/icons/
-
-
-```
-
-#############################################################################
-
-+ #### 2020.02.04 更新 - version:0.1.1
-
-新增调用外部脚本机制：
-
-目前是早上9点调用脚本，以后有需求可能会改成yaml配置
-
-可以实现的功能：10.1国庆节还有14天的时候通知
-
-配置文件（可以配置多个规则，但目前只有一个脚本）：
-
-```
-notify_script_name: 'test' //调用脚本名字
-notify_times: //早上9点10分调用 13:00:00 下午1点调用
-    - "09:10:00"
-    - "13:00:00" 
-notify_principles: //调用脚本规则
-  '14|7|1':  //未来某个日期（下面每个date字段对应）离现在还有 14 天 7天 1天时调用脚本
-    - date: "1001" //需要调用脚本的日期
-      solar: False //非阳历 即阴历
-    - date: "1002" //需要调用脚本的日期 solar 不写 默认为True 即阳历
-```
-
-ios的通知脚本可以是：
-
-注：下面的脚本中 message 是回调的拼接好的字符串，必须是这个字段名，
-    message的内容大概为：距离xx生日还有xx天
-
-```
+```yaml
 test:
   sequence:
     - service: notify.mobile_app_xxx
-      data_template:
+      data:
         title: "节假日提醒"
         message: "{{ message }}"
 ```
 
+回调里的 `message` 会是已经拼好的提醒文案，例如“距离 xx 生日还有 7 天”。
 
-![示例图](https://github.com/Crazysiri/chineseholiday/blob/master/snapshot.png)
+## 版本说明
 
-+ #### 参考
-参考：
-1. https://bbs.hassbian.com/thread-9133-1-1.html
-2. https://bbs.hassbian.com/forum.php?mod=viewthread&tid=1237&highlight=农历
+- `0.3.1-pre`：增加 UI 配置流，补充品牌资源、多语言文案，适配新版 Home Assistant / HACS 分发
+- `0.2.0`：支持 HACS，前端从 Polymer 升级到 Lit
 
-个人感觉有些地方不太适合我的场景的，所以重构了部分代码，增加了一些功能，去掉了一些功能。
-
-+ #### 感谢：
-1. WalterDSU提供Readme优化建议 https://github.com/WalterDSU
-
-
-
-去掉的功能：
-
-1.最近的纪念日
-
-理由：
-
-因为年份是固定的，所以每次（每年）还得修改
-
-而且我也没找到使用场景
-
-
-
-增加的功能：
-
-1.每年的纪念日（包括阳历和阴历）
-
-理由：
-
-可纪念生日等每年都有的日子
-
-
-
-优化的点：
-
-1.全部纪念日可通过configuration.yaml配置文件配置而不用改代码
-
-2.增加sqlite数据库 存取网络获取的节假日信息，因为发现L大的只获取当月的，会有有法定节日但是不显示的小问题，所以本插件采取数据库一次性获取6个月的数据，每天更新一次
-
-3.其它：增加节气显示，增加星期显示等
+更早的更新记录、历史说明和旧接入方式见：[旧版文档](docs/legacy.md)
